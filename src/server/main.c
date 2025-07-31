@@ -29,12 +29,29 @@ int main(void) {
     if (listen(sock, 50) == -1)
         HANDLE_ERROR("listen");
     unsigned int client_addr_size = sizeof(client_addr);
-    int cl_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addr_size);
+    int cl_sock =
+        accept(sock, (struct sockaddr *)&client_addr, &client_addr_size);
     if (cl_sock == -1)
         HANDLE_ERROR("accept");
 
-    if (send(cl_sock, "hello world", 11, MSG_NOSIGNAL) == -1)
-        HANDLE_ERROR("send");
+    while (1) {
+        char msg_buf[1024];
+        int bytes_received;
+
+        if ((bytes_received = read(cl_sock, msg_buf, 1024)) == -1) {
+            HANDLE_ERROR("read")
+        }
+        if (bytes_received >= 1024)
+            msg_buf[bytes_received - 1] = 0;
+        else if (bytes_received == 0)
+            break;
+        else
+            msg_buf[bytes_received] = 0;
+        printf("%s", msg_buf);
+
+        if (send(cl_sock, "hello world\n", 12, MSG_NOSIGNAL) == -1)
+            HANDLE_ERROR("send");
+    }
 
     close(sock);
     return 0;
