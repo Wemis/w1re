@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) !void {
         .flags = &.{"--std=c23"},
         .files = &.{"server/main.c"},
     });
+    server.addIncludePath(b.path("include"));
 
     const client = b.addExecutable(.{
         .name = "w1re-client",
@@ -37,6 +38,7 @@ pub fn build(b: *std.Build) !void {
         .flags = &.{"--std=c23"},
         .files = &.{"client/main.c"},
     });
+    client.addIncludePath(b.path("include"));
 
     switch (build_component) {
         .Client => b.installArtifact(client),
