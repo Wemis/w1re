@@ -19,12 +19,14 @@ pub fn build(b: *std.Build) !void {
     });
 
     server.linkLibC();
+    server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
     server.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = &.{"server/main.c"},
+        .files = &.{ "server/main.c", "slice.c" },
     });
     server.addIncludePath(b.path("include"));
+    server.addIncludePath(b.path("libs"));
 
     const client = b.addExecutable(.{
         .name = "w1re-client",
@@ -32,13 +34,15 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
+    client.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
     client.linkLibC();
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = &.{"client/main.c"},
+        .files = &.{ "client/main.c", "slice.c" },
     });
     client.addIncludePath(b.path("include"));
+    client.addIncludePath(b.path("libs"));
 
     switch (build_component) {
         .Client => b.installArtifact(client),
