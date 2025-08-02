@@ -4,10 +4,16 @@
 
 typedef struct {
     char name[32];
+    char usr_id[46];
     uint8_t privkey[32];
     uint8_t sign_pubkey[64];
     uint8_t encr_pubkey[32];
     uint8_t signature[64];
 } User;
+
+typedef struct {
+    uint8_t text[1024];
+    int size;
+} Message;
 
 #endif
