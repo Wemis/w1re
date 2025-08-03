@@ -2,6 +2,9 @@
 #define COMMON_H
 #include <stdint.h>
 
+#define SERVER_IP "127.0.0.1"
+#define PORT 5330
+
 typedef struct {
     char name[32];
     char usr_id[46];
@@ -12,7 +15,9 @@ typedef struct {
 } User;
 
 typedef struct {
-    uint8_t text[1024];
+    char* from;
+    char to[32];
+    char text[1024];
     int size;
 } Message;
 
