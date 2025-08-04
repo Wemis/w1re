@@ -1,5 +1,5 @@
-#include "common.h"
-#include "../libs/cjson/cJSON.h"
+#include "../../../include/common.h"
+#include "../../../libs/cjson/cJSON.h"
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -23,7 +23,7 @@ int send_msg(Message msg) {
 
     cJSON_AddStringToObject(json, "command", "send");
     cJSON_AddStringToObject(json, "message", msg.text);
-    cJSON_AddStringToObject(json, "to", msg.to);
+    cJSON_AddStringToObject(json, "rc_user_id", msg.to);
 
     char* data = cJSON_Print(json);
     cJSON_Delete(json);

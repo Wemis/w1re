@@ -18,12 +18,14 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
+    const shared_files: []const []const u8 = &.{"utils/slice.c", "utils/logger.c"};
+
     server.linkLibC();
     server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
     server.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = &.{ "server/main.c", "slice.c" },
+        .files = @as([]const []const u8, &.{ "server/main.c", "server/commands.c" }) ++ shared_files,
     });
     server.addIncludePath(b.path("include"));
     server.addIncludePath(b.path("libs"));
@@ -34,15 +36,16 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
-    client.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
     client.linkLibC();
+    client.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c"} });
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = &.{ "client/main.c", "slice.c", "client/core/message.c" },
+        .files = @as([]const []const u8, &.{"client/main.c", "client/core/account.c", "client/core/message.c"}) ++ shared_files,
     });
     client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
+    client.linkSystemLibrary("openssl");
 
     switch (build_component) {
         .Client => b.installArtifact(client),
