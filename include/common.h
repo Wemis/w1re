@@ -7,10 +7,10 @@
 
 typedef struct {
     char name[32];
-    char usr_id[46];
+    char id[27];
     uint8_t privkey[32];
-    uint8_t sign_pubkey[64];
-    uint8_t encr_pubkey[32];
+    uint8_t pubkey_sign[32];
+    uint8_t pubkey_encr[32];
     uint8_t signature[64];
 } User;
 
