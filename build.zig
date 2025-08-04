@@ -22,6 +22,7 @@ pub fn build(b: *std.Build) !void {
 
     server.linkLibC();
     server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
+    server.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c"} });
     server.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
@@ -38,6 +39,7 @@ pub fn build(b: *std.Build) !void {
 
     client.linkLibC();
     client.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c"} });
+    client.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c"} });
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
@@ -45,7 +47,7 @@ pub fn build(b: *std.Build) !void {
     });
     client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
-    client.linkSystemLibrary("openssl");
+    client.linkSystemLibrary("sodium");
 
     switch (build_component) {
         .Client => b.installArtifact(client),
