@@ -1,21 +1,16 @@
-#include <stdint.h>
+#include "../../include/account.h"
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include "account.h"
-
 
 uint8_t hexCharToValue(char c) {
-    if ('0' <= c && c <= '9') return c - '0';
+    if ('0' <= c && c <= '9') return c - '0' ;
     if ('a' <= c && c <= 'f') return c - 'a' + 10;
     if ('A' <= c && c <= 'F') return c - 'A' + 10;
     return 0xFF;
 }
 
-int hex_to_bytes(const char* hexStr, uint8_t* outBytes, size_t maxLen) {
+size_t hex_to_bytes(const char* hexStr, uint8_t* outBytes, size_t maxLen) {
     size_t len = strlen(hexStr);
     if (len % 2 != 0) {
         return -1;
@@ -37,7 +32,7 @@ int hex_to_bytes(const char* hexStr, uint8_t* outBytes, size_t maxLen) {
         outBytes[i] = (high << 4) | low;
     }
 
-    return (int)byteCount;
+    return byteCount;
 }
 
 

@@ -6,7 +6,7 @@
 #define PORT 5330
 
 typedef struct {
-    char name[32];
+    char name[64];
     char id[27];
     uint8_t privkey[32];
     uint8_t pubkey_sign[32];
