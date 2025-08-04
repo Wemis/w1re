@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
-    const shared_files: []const []const u8 = &.{"slice.c"};
+    const shared_files: []const []const u8 = &.{"utils/slice.c", "utils/logger.c"};
 
     server.linkLibC();
     server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
@@ -37,14 +37,15 @@ pub fn build(b: *std.Build) !void {
     });
 
     client.linkLibC();
-    client.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
+    client.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c"} });
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = @as([]const []const u8, &.{"client/main.c"}) ++ shared_files,
+        .files = @as([]const []const u8, &.{"client/main.c", "client/core/account.c", "client/core/message.c"}) ++ shared_files,
     });
     client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
+    client.linkSystemLibrary("openssl");
 
     switch (build_component) {
         .Client => b.installArtifact(client),

@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
-#include "message.h"
+#include "../../include/message.h"
 
 
 int main(void) {
