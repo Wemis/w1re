@@ -1,53 +1,77 @@
-#include "../../libs/cjson/cJSON.h"
-#include "../../libs/khash.h"
 #include "../utils/logger.h"
 #include "../utils/slice.h"
 #include "commands.h"
 #include "server.h"
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <signal.h>
-#include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <string.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
-#include <threads.h>
 #include <unistd.h>
+#include "commands.h"
 
-#define ADDRESS INADDR_ANY
-#define PORT 5330
-#define BACKLOG 50
-#define BUFFER_SIZE 1024
+#define PORT                5330
+#define MAX_EVENTS          64
+#define BUFFER_SIZE         4096
 
-typedef struct ClientParams {
-    Server *server;
-    int sock;
-} ClientParams;
+static int set_nonblocking(const int fd) {
+    const int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) return -1;
+    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
 
-void crash_handler(const int sig) {
-    LOG_ERRORF("%d", sig);
-    exit(1);
+static void crash_handler(const int sig) {
+    LOG_ERROR("Caught signal %d, exiting...", sig);
+    _exit(1);
 }
 
 void init_signals(void) {
     signal(SIGSEGV, crash_handler);
-    signal(SIGPIPE, crash_handler);
     signal(SIGABRT, crash_handler);
+    signal(SIGPIPE, crash_handler);
 }
 
-void server_init(Server *server) {
-    if (server) {
-        server->clients = kh_init(STR_INT);
-        pthread_mutex_init(&server->clients_mutex, nullptr);
+int server_init(Server *srv) {
+    if (!srv)
+        return -1;
+    const int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_fd < 0) {
+        LOG_ERROR("socket()");
+        return -1;
     }
-}
+    if (set_nonblocking(listen_fd) < 0) {
+        LOG_ERROR("set_nonblocking()");
+        close(listen_fd);
+        return -1;
+    }
+    constexpr int opt = 1;
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-void server_free(Server *server) {
-    if (server) {
-        kh_destroy_STR_INT(server->clients);
-        pthread_mutex_destroy(&server->clients_mutex);
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(PORT);
+    if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        LOG_ERROR("bind()");
+        close(listen_fd);
+        return -1;
     }
+    if (listen(listen_fd, SOMAXCONN) < 0) {
+        LOG_ERROR("listen()");
+        close(listen_fd);
+        return -1;
+    }
+    srv->sock = listen_fd;
+    srv->epoll_fd = epoll_create1(0);
+    if (srv->epoll_fd < 0) {
+        LOG_ERROR("epoll_create1()");
+        close(listen_fd);
+        return -1;
+    }
+    return 0;
 }
 
 int process_command(Server *server, const Slice buf, const int sock) {
@@ -84,99 +108,70 @@ int process_command(Server *server, const Slice buf, const int sock) {
     return result;
 }
 
-int setup_socket(void) {
-    const int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock == -1)
-        LOG_ERROR("socket");
-
-    constexpr int opt = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-        LOG_ERROR("setsockopt");
-
-    struct sockaddr_in addr = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = ADDRESS;
-    addr.sin_port = htons(PORT);
-
-    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        LOG_ERROR("bind");
-
-    return sock;
-}
-
-int serve_client(void *arg) {
-    const auto params = (ClientParams *)arg;
-    pthread_detach(pthread_self());
-
-    char buffer[BUFFER_SIZE];
-    while (1) {
-        const size_t received = read(params->sock, buffer, sizeof(buffer));
-        LOG_INFOF("%lu", received);
-        if (received == -1) {
-            LOG_ERROR("read");
-            break;
-        }
-        if (received == 0) {
-            LOG_INFO("connection closed");
-            break;
-        }
-        process_command(params->server, slice_from_arr(buffer, received),
-                        params->sock);
-    }
-
-    close(params->sock);
-    free(params);
-    return 0;
-}
-
-int server_listen(Server* server, const int sock) {
-    if (listen(sock, BACKLOG) < 0) {
-        LOG_ERROR("listen");
-        return -1;
-    }
+void server_run(Server *srv) {
+    struct epoll_event ev, events[MAX_EVENTS];
+    ev.events = EPOLLIN;
+    ev.data.fd = srv->sock;
+    epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->sock, &ev);
 
     while (1) {
-        struct sockaddr_in client_addr;
-        socklen_t addr_len = sizeof(client_addr);
-
-        const int client_sock =
-            accept(sock, (struct sockaddr *)&client_addr, &addr_len);
-        if (client_sock == -1) {
-            LOG_ERROR("accept");
-            continue;
+        const int n = epoll_wait(srv->epoll_fd, events, MAX_EVENTS, -1);
+        if (n < 0 && errno != EINTR) {
+            LOG_ERROR("epoll_wait()");
+            break;
         }
-
-        ClientParams *params = malloc(sizeof(ClientParams));
-        if (!params) {
-            close(client_sock);
-            LOG_ERROR("malloc failed");
-            continue;
-        }
-        params->server = server;
-        params->sock = client_sock;
-
-        thrd_t thread;
-        if (thrd_create(&thread, serve_client, params) < 0) {
-            free(params);
-            LOG_ERROR("thread");
+        for (int i = 0; i < n; i++) {
+            const int fd = events[i].data.fd;
+            if (fd == srv->sock) {
+                while (1) {
+                    const int client_fd = accept(srv->sock, nullptr, nullptr);
+                    if (client_fd < 0) {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            break;
+                        LOG_ERROR("accept()");
+                        break;
+                    }
+                    set_nonblocking(client_fd);
+                    ev.events = EPOLLIN | EPOLLET;
+                    ev.data.fd = client_fd;
+                    epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+                    LOG_INFO("Client connected: %d", client_fd);
+                }
+            } else if (events[i].events & EPOLLIN) {
+                char buffer[BUFFER_SIZE];
+                const ssize_t count = read(fd, buffer, sizeof(buffer));
+                if (count <= 0) {
+                    LOG_INFO("Client %d disconnected", fd);
+                    epoll_ctl(srv->epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+                    close(fd);
+                } else {
+                    const Slice slice = { .ptr = buffer, .len = (size_t)count };
+                    if (process_command(srv, slice, fd) < 0) {
+                        LOG_ERROR("processing client %d failed", fd);
+                    }
+                }
+            }
         }
     }
+}
+
+void server_shutdown(Server *srv) {
+    if (!srv) return;
+    kh_destroy_STR_INT(srv->clients);
+    close(srv->sock);
+    close(srv->epoll_fd);
 }
 
 int main(void) {
+    log_init();
     init_signals();
 
-    const int server_sock = setup_socket();
+    Server srv;
+    srv.clients = kh_init_STR_INT();
+    if (server_init(&srv) != 0) return 1;
 
-    Server *server = malloc(sizeof(Server));
-    if (!server)
-        LOG_ERROR("malloc failed");
-    server_init(server);
-
-    server_listen(server, server_sock);
-
-    server_free(server);
-    free(server);
-    close(server_sock);
+    LOG_INFO("Server listening on port %d", PORT);
+    server_run(&srv);
+    server_shutdown(&srv);
     return 0;
 }
