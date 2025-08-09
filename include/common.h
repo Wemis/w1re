@@ -8,8 +8,8 @@
 #define PORT 5330
 
 typedef struct {
-    char name[64];
-    char id[32]; // 16 + 1 + 14 + \0
+    uint8_t name[64];
+    uint8_t id[32]; // 16 + 1 + 14 + \0
     uint8_t privkey[32];
     uint8_t pubkey_sign[32];
     uint8_t pubkey_encr[32];
@@ -17,12 +17,11 @@ typedef struct {
 } User;
 
 typedef struct {
-    char from[32];
-    char to[32];
+    uint8_t from[32];
+    uint8_t to[32];
     uint8_t nonce[crypto_box_NONCEBYTES];
     uint8_t sender_pubkey[crypto_box_PUBLICKEYBYTES];
     uint8_t* ciphertext;
-    char* decrypted_text;
     size_t size;
 } Message;
 

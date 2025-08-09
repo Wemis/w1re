@@ -1,5 +1,6 @@
 #include "../../include/account.h"
 #include "../../include/message.h"
+#include "../../include/network.h"
 #include "../utils/hex.h"
 #include <arpa/inet.h>
 #include <stdint.h>
@@ -24,12 +25,12 @@ int main(void) {
 
     User usr = get_account(key, usrname, name);
 
-    Message msg = build_msg("hello, it's secret", usr.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
+    Message msg = build_msg("hello, it's secret", (char*)usr.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
 
     printf("From: %s\n", msg.from);
     printf("To: %s\n", msg.to);
     printf("Message: ");
-    print_hex(msg.ciphertext, msg.size + 16);
+    print_hex(msg.ciphertext, msg.size);
     printf("Sender Public key: ");
     print_hex(msg.sender_pubkey, 32);
 
@@ -37,10 +38,13 @@ int main(void) {
     uint8_t alice_key[32];
     hex_to_bytes(alice_key_hex, alice_key, 32);
 
-    open_msg(&msg, alice_key);
+    char* text = malloc(msg.size - crypto_box_MACBYTES + 1);;
+    open_msg(&msg, alice_key, text);
 
-    printf("\nDecrypted: %s\n", msg.decrypted_text);
+    printf("\nDecrypted: %s\n", text);
+
+    send_msg(msg);
 
     free(msg.ciphertext);
-    free(msg.decrypted_text);
+    free(text);
 }

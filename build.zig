@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) !void {
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
-        .files = @as([]const []const u8, &.{"client/main.c", "client/core/account.c", "client/core/message.c"}) ++ shared_files,
+        .files = @as([]const []const u8, &.{"client/main.c", "client/core/account.c", "client/core/message.c", "client/network.c"}) ++ shared_files,
     });
     client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
