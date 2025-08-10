@@ -60,11 +60,10 @@ User get_account(uint8_t privkey[32], char username[17], char name[32]) {
     memset(full_key, 0, crypto_sign_SECRETKEYBYTES);
     crypto_box_seed_keypair(user.pubkey_encr, full_key, user.privkey);
 
-
-    uint8_t both_pubkeys[2*crypto_sign_PUBLICKEYBYTES];
+    uint8_t both_pubkeys[2 * crypto_sign_PUBLICKEYBYTES];
     memcpy(both_pubkeys, user.pubkey_encr, crypto_sign_PUBLICKEYBYTES);
-    memcpy(both_pubkeys + crypto_sign_PUBLICKEYBYTES, user.pubkey_sign, crypto_sign_PUBLICKEYBYTES);
-
+    memcpy(both_pubkeys + crypto_sign_PUBLICKEYBYTES, user.pubkey_sign,
+           crypto_sign_PUBLICKEYBYTES);
 
     uint8_t hash[32];
     crypto_hash_sha256(hash, both_pubkeys, 64);
@@ -73,7 +72,9 @@ User get_account(uint8_t privkey[32], char username[17], char name[32]) {
 
     int count = 0;
     for (int i = 0; i < 17; i++) {
-        if (username[i] == '\0') {break;}
+        if (username[i] == '\0') {
+            break;
+        }
         user_id[i] = username[i];
         count++;
     }
@@ -92,7 +93,7 @@ User get_account(uint8_t privkey[32], char username[17], char name[32]) {
     memcpy(tag, hash, 8);
     memcpy(tag + 8, checksum, 2);
 
-    const char * base58_tag = base58encode(tag, 10);
+    const char *base58_tag = base58encode(tag, 10);
 
     for (int i = 0; i < 14; i++) {
         user_id[count + i] = base58_tag[i];
@@ -111,7 +112,6 @@ User get_account(uint8_t privkey[32], char username[17], char name[32]) {
     return user;
 }
 
-
 int verify_account(User user) {
     if (sodium_init() < 0) {
         printf("[-] Sodium init error");
@@ -121,6 +121,7 @@ int verify_account(User user) {
     uint8_t buffer[256] = {0};
     uint8_t hash[32];
     int offset = 0;
+
     memcpy(buffer + offset, user.id, strlen(user.id));
     offset += strlen(user.id);
     memcpy(buffer + offset, user.name, strlen(user.name));
@@ -132,26 +133,31 @@ int verify_account(User user) {
 
     crypto_hash_sha256(hash, buffer, offset);
 
-    if (crypto_sign_verify_detached(user.signature, hash, 32, user.pubkey_sign) == -1) {
+    if (crypto_sign_verify_detached(user.signature, hash, 32,
+                                    user.pubkey_sign) == -1) {
+
         return 0;
     }
 
     int start = 0;
     for (int i = 0; i < strlen(user.id); i++) {
-        if (user.id[i] == '#') {start = i + 1;}
+        if (user.id[i] == '#') {
+            start = i + 1;
+        }
     }
 
     char tag_base58[14];
     for (int i = 0; i < 14; i++) {
+
         tag_base58[i] = user.id[start + i];
     }
 
     uint8_t tag[10];
     base58decode(tag_base58, tag);
-
-    uint8_t both_pubkeys[2*crypto_sign_PUBLICKEYBYTES];
+    uint8_t both_pubkeys[2 * crypto_sign_PUBLICKEYBYTES];
     memcpy(both_pubkeys, user.pubkey_encr, crypto_sign_PUBLICKEYBYTES);
-    memcpy(both_pubkeys + crypto_sign_PUBLICKEYBYTES, user.pubkey_sign, crypto_sign_PUBLICKEYBYTES);
+    memcpy(both_pubkeys + crypto_sign_PUBLICKEYBYTES, user.pubkey_sign,
+           crypto_sign_PUBLICKEYBYTES);
 
     crypto_hash_sha256(hash, both_pubkeys, 64);
 

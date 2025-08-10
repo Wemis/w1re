@@ -4,5 +4,5 @@
 #include "server.h"
 
 
-int command_register(Server *server, const cJSON *json, int sock);
-int command_send(Server *server, const cJSON *json);
+int command_register(const Server *server, const cJSON *json, int sock);
+int command_send(const Server *server, const cJSON *json);
