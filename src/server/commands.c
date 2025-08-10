@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-int command_register(Server *server, const cJSON *json, const int sock) {
+int command_register(const Server *server, const cJSON *json, const int sock) {
     const cJSON *user_id_item = cJSON_GetObjectItemCaseSensitive(json, "user_id");
     if (!cJSON_IsString(user_id_item) || !user_id_item->valuestring) {
         return -1;
@@ -30,7 +30,7 @@ int command_register(Server *server, const cJSON *json, const int sock) {
     return 0;
 }
 
-int command_send(Server *server, const cJSON *json) {
+int command_send(const Server *server, const cJSON *json) {
     const cJSON *receiver_item =
         cJSON_GetObjectItemCaseSensitive(json, "rc_user_id");
     const cJSON *message_item = cJSON_GetObjectItemCaseSensitive(json, "message");
