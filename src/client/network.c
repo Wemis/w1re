@@ -6,12 +6,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include "common.h"
+#include "../../include/common.h"
 #include "../../libs/cjson/cJSON.h"
 
-
-
-int send_msg(Message msg) {
+int send_msg(const Message msg) {
     cJSON* json = cJSON_CreateObject();
     cJSON* nonce = cJSON_CreateArray();
     cJSON* pubkey = cJSON_CreateArray();
@@ -42,12 +40,12 @@ int send_msg(Message msg) {
 
     cJSON_AddItemToObject(json, "message", message);
 
-    char* json_payload = cJSON_Print(json);
+    const char * json_payload = cJSON_Print(json);
     cJSON_Delete(json);
 
     uint8_t header[4];
-    uint32_t len = strlen(json_payload);
-    uint32_t len_be = htonl(len);
+    const uint32_t len = strlen(json_payload);
+    const uint32_t len_be = htonl(len);
 
     memcpy(header, &len_be, 4);
 
@@ -78,10 +76,10 @@ int send_msg(Message msg) {
         return 1;
     }
 
-    ssize_t packet_size = 4 + strlen(json_payload);
+    const ssize_t packet_size = 4 + strlen(json_payload);
     ssize_t total_sent = 0;
     while (total_sent < packet_size) {
-        ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);
+        const ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);
         if (sent <= 0) {
             perror("[-] Data not sent");
             close(sock);
@@ -95,14 +93,12 @@ int send_msg(Message msg) {
     return 0;
 }
 
-
-
-int send_msg_binary(Message msg) {
+int send_msg_binary(const Message msg) {
     cJSON* json = cJSON_CreateObject();
 
     cJSON_AddStringToObject(json, "command", "send");
-    cJSON_AddStringToObject(json, "rc_user_id", (const char*)msg.to);
-    cJSON_AddStringToObject(json, "from_user_id", (const char*)msg.from);
+    cJSON_AddStringToObject(json, "rc_user_id", msg.to);
+    cJSON_AddStringToObject(json, "from_user_id", msg.from);
     cJSON_AddNumberToObject(json, "message_size", msg.size);
 
     char* json_payload = cJSON_Print(json);
@@ -115,11 +111,11 @@ int send_msg_binary(Message msg) {
     memcpy(bytes_payload + 24 + 32, msg.ciphertext, msg.size);
 
     uint8_t header[8];
-    uint32_t len = strlen(json_payload) + 24 + 32 + msg.size;
-    uint32_t json_len = strlen(json_payload);
+    const uint32_t len = strlen(json_payload) + 24 + 32 + msg.size;
+    const uint32_t json_len = strlen(json_payload);
 
-    uint32_t len_be = htonl(len);
-    uint32_t json_len_be = htonl(json_len);
+    const uint32_t len_be = htonl(len);
+    const uint32_t json_len_be = htonl(json_len);
 
     memcpy(header, &len_be, 4);
     memcpy(header + 4, &json_len_be, 4);
@@ -152,10 +148,10 @@ int send_msg_binary(Message msg) {
         return 1;
     }
 
-    ssize_t packet_size = 8 + strlen(json_payload) + 24 + 32 + msg.size;
+    const ssize_t packet_size = 8 + strlen(json_payload) + 24 + 32 + msg.size;
     ssize_t total_sent = 0;
     while (total_sent < packet_size) {
-        ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);
+        const ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);
         if (sent <= 0) {
             perror("[-] Data not sent");
             close(sock);

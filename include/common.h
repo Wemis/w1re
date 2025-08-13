@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sodium/crypto_box.h>
+#include "../src/utils/slice.h"
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 5330
@@ -17,12 +18,11 @@ typedef struct {
 } User;
 
 typedef struct {
-    uint8_t from[32];
-    uint8_t to[32];
+    uint8_t* from;
+    uint8_t* to;
     uint8_t nonce[crypto_box_NONCEBYTES];
     uint8_t sender_pubkey[crypto_box_PUBLICKEYBYTES];
-    uint8_t* ciphertext;
-    size_t size;
+    Slice message;
 } Message;
 
 #endif

@@ -74,7 +74,7 @@ int server_init(Server *srv) {
     return 0;
 }
 
-int process_command(Server *server, const Slice buf, const int sock) {
+int process_command(const Server *server, const Slice buf, const int sock) {
     LOG_INFO("process_command");
     cJSON *json = cJSON_Parse(buf.ptr);
     if (!json) {
@@ -108,7 +108,7 @@ int process_command(Server *server, const Slice buf, const int sock) {
     return result;
 }
 
-void server_run(Server *srv) {
+void server_run(const Server *srv) {
     struct epoll_event ev, events[MAX_EVENTS];
     ev.events = EPOLLIN;
     ev.data.fd = srv->sock;
