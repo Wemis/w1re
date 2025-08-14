@@ -1,6 +1,4 @@
 #include "../../../include/common.h"
-#include "../../../libs/cjson/cJSON.h"
-#include "../../utils/hex.h"
 #include <sodium/crypto_box.h>
 #include <sodium/randombytes.h>
 #include <sodium.h>
@@ -13,7 +11,7 @@
 #include <stdlib.h>
 
 
-Message build_msg(char * text, char from[32], char to[32],
+Message build_msg(char * text, const uint8_t from[32], const uint8_t to[32],
     uint8_t rc_pubkey[crypto_box_PUBLICKEYBYTES],
     uint8_t sender_pubkey[crypto_box_PUBLICKEYBYTES],
     uint8_t seed[crypto_box_SECRETKEYBYTES]) {
@@ -25,10 +23,10 @@ Message build_msg(char * text, char from[32], char to[32],
     randombytes_buf(msg.nonce, sizeof msg.nonce);
     crypto_box_seed_keypair(temp, privkey, seed);
 
-    msg.ciphertext = malloc(strlen(text) + crypto_box_MACBYTES);
-    msg.size = strlen(text) + crypto_box_MACBYTES;
+    msg.message.ptr = malloc(strlen(text) + crypto_box_MACBYTES);
+    msg.message.len = strlen(text) + crypto_box_MACBYTES;
 
-    crypto_box_easy(msg.ciphertext, (unsigned char *)text, strlen(text), msg.nonce, rc_pubkey, privkey);
+    crypto_box_easy(msg.message.ptr, (unsigned char *)text, strlen(text), msg.nonce, rc_pubkey, privkey);
     memcpy(msg.sender_pubkey, sender_pubkey, crypto_box_PUBLICKEYBYTES);
     memcpy(msg.from, from, strlen(from));
     memcpy(msg.to, to, strlen(to));
@@ -46,7 +44,7 @@ void open_msg(Message* msg, uint8_t seed[32], char* decrypted_text) {
 
     crypto_box_seed_keypair(temp, privkey, seed);
 
-    crypto_box_open_easy((unsigned char *)decrypted_text, msg->ciphertext, msg->size, msg->nonce, msg->sender_pubkey, privkey);
-    decrypted_text[msg->size - crypto_box_MACBYTES] = '\0';
+    crypto_box_open_easy((unsigned char *)decrypted_text, msg->message.ptr, msg->message.len, msg->nonce, msg->sender_pubkey, privkey);
+    decrypted_text[msg->message.len - crypto_box_MACBYTES] = '\0';
 
 }
