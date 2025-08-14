@@ -18,8 +18,8 @@ typedef struct {
 } User;
 
 typedef struct {
-    uint8_t* from;
-    uint8_t* to;
+    uint8_t from[32];
+    uint8_t to[32];
     uint8_t nonce[crypto_box_NONCEBYTES];
     uint8_t sender_pubkey[crypto_box_PUBLICKEYBYTES];
     Slice message;
