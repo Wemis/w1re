@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+
 int main(void) {
     char* usrname = "danylo";
     char* name = "Danylo";
@@ -28,7 +30,7 @@ int main(void) {
     printf("From: %s\n", (const char*)msg.from);
     printf("To: %s\n", (const char*)msg.to);
     printf("Message: ");
-    print_hex(msg.message.ptr, msg.message.len);
+    print_hex(msg.ciphertext, msg.size);
     printf("Sender Public key: ");
     print_hex(msg.sender_pubkey, 32);
 
@@ -36,13 +38,13 @@ int main(void) {
     uint8_t alice_key[32];
     hex_to_bytes(alice_key_hex, alice_key, 32);
 
-    char* text = malloc(msg.message.len - crypto_box_MACBYTES + 1);;
+    char* text = malloc(msg.size - crypto_box_MACBYTES + 1);;
     open_msg(&msg, alice_key, text);
 
     printf("\nDecrypted: %s\n", text);
 
     send_msg(msg);
 
-    free(msg.message.ptr);
+    free(msg.ciphertext);
     free(text);
 }
