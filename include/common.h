@@ -1,9 +1,9 @@
 #ifndef COMMON_H
 #define COMMON_H
+#include "../src/shared/slice.h"
+#include <sodium/crypto_box.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sodium/crypto_box.h>
-#include "../src/utils/slice.h"
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 5330

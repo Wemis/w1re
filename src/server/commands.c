@@ -1,8 +1,8 @@
 #include "../../include/common.h"
 #include "../../libs/cjson/cJSON.h"
 #include "../../libs/khash.h"
-#include "../utils/logger.h"
-#include "../utils/slice.h"
+#include "../shared/logger.h"
+#include "../shared/slice.h"
 #include "server.h"
 
 #include <pthread.h>

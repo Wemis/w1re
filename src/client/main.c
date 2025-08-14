@@ -1,19 +1,17 @@
 #include "../../include/account.h"
 #include "../../include/message.h"
 #include "../../include/network.h"
-#include "../utils/hex.h"
+#include "../shared/hex.h"
 #include "common.h"
 #include <arpa/inet.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/event.h>
+#include <event2/util.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <event2/event.h>
-#include <event2/bufferevent.h>
-#include <event2/buffer.h>
-#include <event2/util.h>
 #include <string.h>
-
-
 
 static struct event_base *base;
 
