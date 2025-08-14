@@ -75,9 +75,13 @@ int command_send(const Server *server, const cJSON *json) {
     const cJSON *message_length = cJSON_GetObjectItemCaseSensitive(message, "length");
 
     Message msg = {
-        .from = (uint8_t *)from->valuestring,
-        .to = (uint8_t *)to->valuestring,
         .message = {.ptr = message_content->valuestring, .len = message_length->valueint}};
+
+    memcpy(msg.from, from->valuestring, strlen(from->valuestring));
+    memcpy(msg.to, to->valuestring, strlen(to->valuestring));
+
+    msg.from[strlen(from->valuestring)] = '\0';
+    msg.to[strlen(to->valuestring)] = '\0';
 
     if (cJSON_GetArraySize(nonce) != 24) {
         LOG_ERROR("nonce must be at exactly 24 bytes long");
