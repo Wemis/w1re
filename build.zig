@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
-    const shared_files: []const []const u8 = &.{"utils/slice.c", "utils/logger.c", "utils/hex.c"};
+    const shared_files: []const []const u8 = &.{"utils/slice.c", "utils/hex.c"};
 
     server.linkLibC();
     server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });

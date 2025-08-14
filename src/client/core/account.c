@@ -112,7 +112,7 @@ User get_account(uint8_t privkey[32], char username[17], char name[32]) {
     return user;
 }
 
-int verify_account(User user) {
+int verify_account(const User user) {
     if (sodium_init() < 0) {
         printf("[-] Sodium init error");
         return 0;
