@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) !void {
     client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
     client.linkSystemLibrary("sodium");
+    client.linkSystemLibrary("event");
 
     switch (build_component) {
         .Client => b.installArtifact(client),
