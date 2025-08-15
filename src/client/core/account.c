@@ -1,4 +1,4 @@
-#include "../../../include/common.h"
+#include "../../shared/common.h"
 #include "../../../libs/base58/base58.h"
 #include <sodium.h>
 #include <sodium/crypto_box.h>

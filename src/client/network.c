@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
-#include "../../include/common.h"
+#include "../shared/common.h"
 #include "../../libs/cjson/cJSON.h"
-#include "account.h"
+#include "../shared/account.h"
 
 int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* json = cJSON_CreateObject();
@@ -20,8 +20,8 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* content = cJSON_CreateArray();
 
     cJSON_AddStringToObject(json, "command", "send");
-    cJSON_AddStringToObject(json, "rc_user_id", (const char*)msg.to);
-    cJSON_AddStringToObject(json, "from_user_id", (const char*)msg.from);
+    cJSON_AddStringToObject(json, "rc_user_id", msg.to);
+    cJSON_AddStringToObject(json, "from_user_id", msg.from);
 
     for (int i = 0; i < 24; i++) {
         cJSON_AddItemToArray(nonce, cJSON_CreateNumber(msg.nonce[i]));
@@ -31,15 +31,15 @@ int send_msg(const Message msg, struct bufferevent *bev) {
         cJSON_AddItemToArray(pubkey, cJSON_CreateNumber(msg.sender_pubkey[i]));
     }
 
-    for (size_t i = 0; i < msg.message.len; i++) {
-        cJSON_AddItemToArray(content, cJSON_CreateNumber(((double*)msg.message.ptr)[i]));
+    for (size_t i = 0; i < msg.content.len; i++) {
+        cJSON_AddItemToArray(content, cJSON_CreateNumber(((double*)msg.content.ptr)[i]));
     }
 
     cJSON_AddItemToObject(json, "nonce", nonce);
     cJSON_AddItemToObject(json, "sender_pubkey", pubkey);
 
     cJSON_AddItemToObject(message, "content", content);
-    cJSON_AddNumberToObject(message, "size", msg.message.len);
+    cJSON_AddNumberToObject(message, "size", msg.content.len);
 
     cJSON_AddItemToObject(json, "message", message);
 
@@ -105,19 +105,19 @@ int send_msg_binary(const Message msg) {
     cJSON_AddStringToObject(json, "command", "send");
     cJSON_AddStringToObject(json, "rc_user_id", msg.to);
     cJSON_AddStringToObject(json, "from_user_id", msg.from);
-    cJSON_AddNumberToObject(json, "message_size", msg.message.len);
+    cJSON_AddNumberToObject(json, "message_size", msg.content.len);
 
     char* json_payload = cJSON_Print(json);
     cJSON_Delete(json);
 
-    uint8_t bytes_payload[24 + 32 + msg.message.len];
+    uint8_t bytes_payload[24 + 32 + msg.content.len];
 
     memcpy(bytes_payload, msg.nonce, 24);
     memcpy(bytes_payload + 24, msg.sender_pubkey, 32);
-    memcpy(bytes_payload + 24 + 32, msg.message.ptr, msg.message.len);
+    memcpy(bytes_payload + 24 + 32, msg.content.ptr, msg.content.len);
 
     uint8_t header[8];
-    const uint32_t len = strlen(json_payload) + 24 + 32 + msg.message.len;
+    const uint32_t len = strlen(json_payload) + 24 + 32 + msg.content.len;
     const uint32_t json_len = strlen(json_payload);
 
     const uint32_t len_be = htonl(len);
@@ -126,10 +126,10 @@ int send_msg_binary(const Message msg) {
     memcpy(header, &len_be, 4);
     memcpy(header + 4, &json_len_be, 4);
 
-    uint8_t packet[8 + strlen(json_payload) + 24 + 32 + msg.message.len];
+    uint8_t packet[8 + strlen(json_payload) + 24 + 32 + msg.content.len];
     memcpy(packet, header, 8);
     memcpy(packet + 8, json_payload, json_len);
-    memcpy(packet + 8 + json_len, bytes_payload, 24 + 32 + msg.message.len);
+    memcpy(packet + 8 + json_len, bytes_payload, 24 + 32 + msg.content.len);
 
     int sock = 0;
     struct sockaddr_in serv_addr;
@@ -154,7 +154,7 @@ int send_msg_binary(const Message msg) {
         return 1;
     }
 
-    const ssize_t packet_size = 8 + strlen(json_payload) + 24 + 32 + msg.message.len;
+    const ssize_t packet_size = 8 + strlen(json_payload) + 24 + 32 + msg.content.len;
     ssize_t total_sent = 0;
     while (total_sent < packet_size) {
         const ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);

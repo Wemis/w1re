@@ -1,17 +1,16 @@
-#include "../utils/logger.h"
-#include "../utils/slice.h"
+#include "../shared/logger.h"
+#include "../shared/slice.h"
 #include "commands.h"
 #include "server.h"
 #include <arpa/inet.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "commands.h"
 
 #define PORT                5330
 #define MAX_EVENTS          64

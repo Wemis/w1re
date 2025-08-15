@@ -1,19 +1,17 @@
-#include "../../include/account.h"
-#include "../../include/message.h"
-#include "../../include/network.h"
-#include "../utils/hex.h"
-#include "common.h"
+#include "../shared/account.h"
+#include "message.h"
+#include "network.h"
+#include "../shared/hex.h"
+#include "../shared/common.h"
 #include <arpa/inet.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/event.h>
+#include <event2/util.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <event2/event.h>
-#include <event2/bufferevent.h>
-#include <event2/buffer.h>
-#include <event2/util.h>
 #include <string.h>
-
-
 
 static struct event_base *base;
 
@@ -109,7 +107,7 @@ void test_encr(void) {
     printf("From: %s\n", (const char*)msg.from);
     printf("To: %s\n", (const char*)msg.to);
     printf("Message: ");
-    print_hex(msg.message.ptr, msg.message.len);
+    print_hex(msg.content.ptr, msg.content.len);
     printf("Sender Public key: ");
     print_hex(msg.sender_pubkey, 32);
 
@@ -117,13 +115,13 @@ void test_encr(void) {
     uint8_t alice_key[32];
     hex_to_bytes(alice_key_hex, alice_key, 32);
 
-    char* text = malloc(msg.message.len - crypto_box_MACBYTES + 1);;
+    char* text = malloc(msg.content.len - crypto_box_MACBYTES + 1);;
     open_msg(&msg, alice_key, text);
 
     printf("\nDecrypted: %s\n", text);
 
     send_msg(msg);
 
-    free(msg.message.ptr);
+    free(msg.content.ptr);
     free(text);
 }
