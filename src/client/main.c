@@ -1,8 +1,8 @@
-#include "../../include/account.h"
-#include "../../include/message.h"
-#include "../../include/network.h"
+#include "../shared/account.h"
+#include "message.h"
+#include "network.h"
 #include "../shared/hex.h"
-#include "common.h"
+#include "../shared/common.h"
 #include <arpa/inet.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>

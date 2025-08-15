@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
-#include "../../include/common.h"
+#include "../shared/common.h"
 #include "../../libs/cjson/cJSON.h"
-#include "account.h"
+#include "../shared/account.h"
 
 int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* json = cJSON_CreateObject();

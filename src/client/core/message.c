@@ -1,15 +1,11 @@
-#include "../../../include/common.h"
+#include "../../shared/common.h"
+#include <arpa/inet.h>
+#include <sodium.h>
 #include <sodium/crypto_box.h>
 #include <sodium/randombytes.h>
-#include <sodium.h>
-#include <stdint.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 Message build_msg(char * text, const uint8_t from[32], const uint8_t to[32],
     uint8_t rc_pubkey[crypto_box_PUBLICKEYBYTES],

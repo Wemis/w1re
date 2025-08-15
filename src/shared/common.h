@@ -1,6 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
-#include "../src/shared/slice.h"
+#include "slice.h"
 #include <sodium/crypto_box.h>
 #include <stddef.h>
 #include <stdint.h>
