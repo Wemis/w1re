@@ -56,7 +56,7 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     memcpy(packet, header, 4);
     memcpy(packet + 4, json_payload, len);
 
-    bufferevent_write(bev, packet, 4 + strlen(json_payload));
+    bufferevent_write(bev, json_payload, strlen(json_payload));
     /*
     int sock = 0;
     struct sockaddr_in serv_addr;
@@ -202,4 +202,19 @@ void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct buffe
     cJSON_AddItemToObject(user, "signature", signature);
 
     cJSON_AddItemToObject(json, "user", user);
+
+    const char* json_string = cJSON_Print(json);
+    cJSON_Delete(json);
+
+    uint8_t header[4];
+    const uint32_t len = strlen(json_string);
+    const uint32_t len_be = htonl(len);
+
+    memcpy(header, &len_be, 4);
+
+    uint8_t packet[4 + strlen(json_string)];
+    memcpy(packet, header, 4);
+    memcpy(packet + 4, json_string, len);
+
+    bufferevent_write(bev, json_string, strlen(json_string));
 }
