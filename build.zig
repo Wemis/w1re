@@ -18,17 +18,15 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
-    const shared_files: []const []const u8 = &.{"utils/slice.c", "utils/hex.c"};
+    const shared_files: []const []const u8 = &.{"shared/slice.c", "shared/hex.c", "shared/serializer.c"};
 
     server.linkLibC();
-    server.addCSourceFile(.{ .file = b.path("libs/cjson/cJSON.c") });
-    server.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c"} });
+    server.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c", "libs/base58/base58.c"} });
     server.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
         .files = @as([]const []const u8, &.{ "server/main.c", "server/commands.c" }) ++ shared_files,
     });
-    server.addIncludePath(b.path("include"));
     server.addIncludePath(b.path("libs"));
 
     const client = b.addExecutable(.{
@@ -38,14 +36,12 @@ pub fn build(b: *std.Build) !void {
     });
 
     client.linkLibC();
-    client.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c"} });
-    client.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c"} });
+    client.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c", "libs/cjson/cJSON.c"} });
     client.addCSourceFiles(.{
         .root = b.path("src"),
         .flags = &.{"--std=c23"},
         .files = @as([]const []const u8, &.{"client/main.c", "client/core/account.c", "client/core/message.c", "client/network.c"}) ++ shared_files,
     });
-    client.addIncludePath(b.path("include"));
     client.addIncludePath(b.path("libs"));
     client.linkSystemLibrary("sodium");
     client.linkSystemLibrary("event");
