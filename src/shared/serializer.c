@@ -48,8 +48,8 @@ int json_to_message(const cJSON *json, Message *message) {
     for (size_t i = 0; i < cJSON_GetArraySize(pubkey_field); i++) {
         message->sender_pubkey[i] = cJSON_GetArrayItem(pubkey_field, i)->valueint;
     }
-    message->message.ptr = strdup(message_content->valuestring);
-    message->message.len = message_length->valueint;
+    message->content.ptr = strdup(message_content->valuestring);
+    message->content.len = message_length->valueint;
     return 0;
 }
 
@@ -65,8 +65,8 @@ void message_to_json(cJSON *json, const Message* message) {
         cJSON_AddItemToArray(pubkey_r, cJSON_CreateNumber(message->sender_pubkey[i]));
     }
     cJSON *message_r = cJSON_CreateObject();
-    cJSON_AddStringToObject(message_r, "content", message->message.ptr);
-    cJSON_AddNumberToObject(message_r, "length", message->message.len);
+    cJSON_AddStringToObject(message_r, "content", message->content.ptr);
+    cJSON_AddNumberToObject(message_r, "length", message->content.len);
 
     cJSON_AddItemReferenceToObject(json, "from", from_r);
     cJSON_AddItemReferenceToObject(json, "to", to_r);

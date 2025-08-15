@@ -107,7 +107,7 @@ void test_encr(void) {
     printf("From: %s\n", (const char*)msg.from);
     printf("To: %s\n", (const char*)msg.to);
     printf("Message: ");
-    print_hex(msg.message.ptr, msg.message.len);
+    print_hex(msg.content.ptr, msg.content.len);
     printf("Sender Public key: ");
     print_hex(msg.sender_pubkey, 32);
 
@@ -115,13 +115,13 @@ void test_encr(void) {
     uint8_t alice_key[32];
     hex_to_bytes(alice_key_hex, alice_key, 32);
 
-    char* text = malloc(msg.message.len - crypto_box_MACBYTES + 1);;
+    char* text = malloc(msg.content.len - crypto_box_MACBYTES + 1);;
     open_msg(&msg, alice_key, text);
 
     printf("\nDecrypted: %s\n", text);
 
     send_msg(msg);
 
-    free(msg.message.ptr);
+    free(msg.content.ptr);
     free(text);
 }

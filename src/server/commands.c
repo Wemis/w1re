@@ -49,5 +49,6 @@ int command_send(const Server *server, const cJSON *json) {
     const int resp_len = strlen(resp);
 
     const int sent = send(sock, resp, resp_len, 0);
+    free(message.content.ptr);
     return sent;
 }
