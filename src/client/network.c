@@ -15,35 +15,10 @@
 
 int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* json = cJSON_CreateObject();
-    cJSON* nonce = cJSON_CreateArray();
-    cJSON* pubkey = cJSON_CreateArray();
-    cJSON* message = cJSON_CreateObject();
-    cJSON* content = cJSON_CreateArray();
 
     cJSON_AddStringToObject(json, "command", "send");
-    cJSON_AddStringToObject(json, "to", msg.to);
-    cJSON_AddStringToObject(json, "from", msg.from);
-
-    for (int i = 0; i < 24; i++) {
-        cJSON_AddItemToArray(nonce, cJSON_CreateNumber(msg.nonce[i]));
-    }
-
-    for (int i = 0; i < 32; i++) {
-        cJSON_AddItemToArray(pubkey, cJSON_CreateNumber(msg.sender_pubkey[i]));
-    }
-
-    for (size_t i = 0; i < msg.content.len; i++) {
-        cJSON_AddItemToArray(content, cJSON_CreateNumber(((uint8_t*)msg.content.ptr)[i]));
-    }
-
-    cJSON_AddItemToObject(json, "nonce", nonce);
-    cJSON_AddItemToObject(json, "pubkey", pubkey);
-
-    cJSON_AddItemToObject(message, "content", content);
-    cJSON_AddNumberToObject(message, "lenght", msg.content.len);
-
-    cJSON_AddItemToObject(json, "message", message);
-
+    message_to_json(json, &msg);
+    
     const char * json_payload = cJSON_Print(json);
     cJSON_Delete(json);
 
@@ -58,45 +33,6 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     memcpy(packet + 4, json_payload, len);
 
     bufferevent_write(bev, json_payload, strlen(json_payload));
-    /*
-    int sock = 0;
-    struct sockaddr_in serv_addr;
-
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("[-] Can't create socket");
-        return 1;
-    }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-
-    if(inet_pton(AF_INET, SERVER_IP, &serv_addr.sin_addr) <= 0) {
-        perror("[-] Invalid address");
-        close(sock);
-        return 1;
-    }
-
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("[-] Connection failed");
-        close(sock);
-        return 1;
-    }
-
-    const ssize_t packet_size = 4 + strlen(json_payload);
-    ssize_t total_sent = 0;
-    while (total_sent < packet_size) {
-        const ssize_t sent = send(sock, packet + total_sent, packet_size - total_sent, 0);
-        if (sent <= 0) {
-            perror("[-] Data not sent");
-            close(sock);
-            return 1;
-        }
-        total_sent += sent;
-    }
-
-    printf("[*] Sent %zu bytes\n", total_sent);
-    close(sock);
-    */
     return 0;
 }
 

@@ -1,5 +1,6 @@
 #include "serializer.h"
 #include "logger.h"
+#include <stdint.h>
 
 int json_to_message(const cJSON *json, Message *message) {
     const cJSON *from_field = cJSON_GetObjectItemCaseSensitive(json, "from");
@@ -65,13 +66,13 @@ void message_to_json(cJSON *json, const Message* message) {
         cJSON_AddItemToArray(nonce, cJSON_CreateNumber(message->nonce[i]));
     }
     cJSON *pubkey = cJSON_CreateArray();
-    for (size_t i = 0; i < 24; i++) {
+    for (size_t i = 0; i < 32; i++) {
         cJSON_AddItemToArray(pubkey, cJSON_CreateNumber(message->sender_pubkey[i]));
     }
     cJSON *message_r = cJSON_CreateObject();
     cJSON *message_content = cJSON_AddArrayToObject(message_r, "content");
     for (size_t i = 0; i < message->content.len; i++) {
-        cJSON_AddItemToArray(message_content, cJSON_CreateNumber(((double*)message->content.ptr)[i]));
+        cJSON_AddItemToArray(message_content, cJSON_CreateNumber(((uint8_t*)message->content.ptr)[i]));
     }
     cJSON_AddNumberToObject(message_r, "length", message->content.len);
 
