@@ -20,8 +20,8 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* content = cJSON_CreateArray();
 
     cJSON_AddStringToObject(json, "command", "send");
-    cJSON_AddStringToObject(json, "rc_user_id", msg.to);
-    cJSON_AddStringToObject(json, "from_user_id", msg.from);
+    cJSON_AddStringToObject(json, "to", msg.to);
+    cJSON_AddStringToObject(json, "from", msg.from);
 
     for (int i = 0; i < 24; i++) {
         cJSON_AddItemToArray(nonce, cJSON_CreateNumber(msg.nonce[i]));
@@ -32,14 +32,14 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     }
 
     for (size_t i = 0; i < msg.content.len; i++) {
-        cJSON_AddItemToArray(content, cJSON_CreateNumber(((double*)msg.content.ptr)[i]));
+        cJSON_AddItemToArray(content, cJSON_CreateNumber(((uint8_t*)msg.content.ptr)[i]));
     }
 
     cJSON_AddItemToObject(json, "nonce", nonce);
-    cJSON_AddItemToObject(json, "sender_pubkey", pubkey);
+    cJSON_AddItemToObject(json, "pubkey", pubkey);
 
     cJSON_AddItemToObject(message, "content", content);
-    cJSON_AddNumberToObject(message, "size", msg.content.len);
+    cJSON_AddNumberToObject(message, "len", msg.content.len);
 
     cJSON_AddItemToObject(json, "message", message);
 
@@ -56,7 +56,7 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     memcpy(packet, header, 4);
     memcpy(packet + 4, json_payload, len);
 
-    bufferevent_write(bev, packet, 4 + strlen(json_payload));
+    bufferevent_write(bev, json_payload, strlen(json_payload));
     /*
     int sock = 0;
     struct sockaddr_in serv_addr;
@@ -182,8 +182,8 @@ void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct buffe
 
     cJSON_AddStringToObject(json, "command", "login");
 
-    cJSON_AddStringToObject(user, "id", u.id);
-    cJSON_AddStringToObject(user, "name", u.name);
+    cJSON_AddStringToObject(user, "user_id", u.id);
+    cJSON_AddStringToObject(user, "user_name", u.name);
 
     for (int i = 0; i < 32; i++) {
         cJSON_AddItemToArray(pubkey_s, cJSON_CreateNumber(u.pubkey_sign[i]));
@@ -197,9 +197,24 @@ void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct buffe
         cJSON_AddItemToArray(signature, cJSON_CreateNumber(u.signature[i]));
     }
 
-    cJSON_AddItemToObject(user, "pubkey_s", pubkey_s);
-    cJSON_AddItemToObject(user, "pubkey_e", pubkey_e);
+    cJSON_AddItemToObject(user, "pubkey_sign", pubkey_s);
+    cJSON_AddItemToObject(user, "pubkey_encr", pubkey_e);
     cJSON_AddItemToObject(user, "signature", signature);
 
     cJSON_AddItemToObject(json, "user", user);
+
+    const char* json_string = cJSON_Print(json);
+    cJSON_Delete(json);
+
+    uint8_t header[4];
+    const uint32_t len = strlen(json_string);
+    const uint32_t len_be = htonl(len);
+
+    memcpy(header, &len_be, 4);
+
+    uint8_t packet[4 + strlen(json_string)];
+    memcpy(packet, header, 4);
+    memcpy(packet + 4, json_string, len);
+
+    bufferevent_write(bev, json_string, strlen(json_string));
 }
