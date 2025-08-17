@@ -19,7 +19,7 @@
     "to": "",
     "nonce": [],
     "pubkey": [],
-    "message": {"content": "", "len": 0}
+    "message": {"content": [], "len": 0}
   }
   ```
 
