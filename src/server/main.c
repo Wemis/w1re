@@ -78,24 +78,24 @@ int server_init(Server *srv) {
     return 0;
 }
 
-static int handle_protocol(const Server *srv, const char *data,
+static int handle_message(const Server *srv, const char *data,
                            const size_t len, const int sock) {
     cJSON *json = cJSON_ParseWithLength(data, len);
     if (!json) {
-        LOG_ERROR("Invalid JSON from client %d", sock);
+        LOG_ERROR("JSON syntax error", sock);
         return -1;
     }
 
     const cJSON *cmd_item = cJSON_GetObjectItemCaseSensitive(json, "command");
     if (!cJSON_IsString(cmd_item)) {
-        LOG_ERROR("Missing 'command' field");
+        LOG_ERROR("`command` field must have `string` type");
         cJSON_Delete(json);
         return -1;
     }
 
     const char *command = cmd_item->valuestring;
-    int result = 0;
 
+    int result = 0;
     if (strcmp(command, "login") == 0) {
         result = command_login(srv, json, sock);
     } else if (strcmp(command, "send") == 0) {
@@ -139,8 +139,8 @@ static void on_client_data(const Server *srv, const int fd) {
         return;
     }
 
-    if (handle_protocol(srv, buffer, (size_t)count, fd) < 0) {
-        LOG_ERROR("Protocol error from client %d", fd);
+    if (handle_message(srv, buffer, (size_t)count, fd) < 0) {
+        LOG_ERROR("Can't handle message from client %d", fd);
     }
 }
 
