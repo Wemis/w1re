@@ -74,3 +74,7 @@ void message_to_json(cJSON *json, const Message* message) {
     cJSON_AddItemReferenceToObject(json, "pubkey", pubkey_r);
     cJSON_AddItemReferenceToObject(json, "message", message_r);
 }
+
+int json_to_user(const cJSON *json, User* user) {
+    const cJSON *from_field = cJSON_GetObjectItemCaseSensitive(json, "user_name");
+}
