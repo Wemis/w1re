@@ -1,20 +1,21 @@
 #include "../shared/account.h"
+#include "../shared/common.h"
+#include "../shared/hex.h"
+#include "../shared/logger.h"
 #include "message.h"
 #include "network.h"
-#include "../shared/hex.h"
-#include "../shared/common.h"
-#include "../shared/logger.h"
 #include <arpa/inet.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/util.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
+#include <unistd.h>
 
 static struct event_base *base;
 
@@ -111,8 +112,7 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
         bufferevent_setcb(rctx->bev, read_cb, NULL, event_cb, rctx);
         bufferevent_enable(rctx->bev, EV_READ | EV_WRITE);
 
-        struct sockaddr_in sin;
-        memset(&sin, 0, sizeof(sin));
+        struct sockaddr_in sin = {0};
         sin.sin_family = AF_INET;
         sin.sin_port = htons(rctx->port);
         inet_pton(AF_INET, rctx->ip, &sin.sin_addr);
@@ -143,8 +143,7 @@ void* event_thread(void *arg) {
 
 int main() {
     log_init();
-    struct ReconnectCtx rctx;
-    memset(&rctx, 0, sizeof(rctx));
+    struct ReconnectCtx rctx = {0};
     rctx.ip = SERVER_IP;
     rctx.port = PORT;
     rctx.seconds = 0;
@@ -168,8 +167,9 @@ int main() {
 
     const User usr = get_account(key, "danylo", "Danylo");
 
-    Message msg = build_msg("hello, it's secret", usr.id, (uint8_t*)"alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
-    
+    const Message msg = build_msg("hello, it's secret", usr.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
+
+    sleep(3);
     if (rctx.is_connected) {
         send_msg(msg, rctx.bev);
     } else {

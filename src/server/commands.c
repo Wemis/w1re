@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-int command_register(const Server *server, const cJSON *json, const int sock) {
+int command_login(const Server *server, const cJSON *json, const int sock) {
     User user;
     if (json_to_user(json, &user) < 0) {
         LOG_ERROR("User parsing error");
