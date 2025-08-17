@@ -90,9 +90,9 @@ int process_command(const Server *server, const Slice buf, const int sock) {
     const char *command = cmd_item->valuestring;
     int result = 0;
 
-    if (!strncmp(command, "reg", 3)) {
+    if (!strncmp(command, "login", 5)) {
         LOG_INFO("Registering client");
-        result = command_register(server, json, sock);
+        result = command_login(server, json, sock);
     } else if (!strncmp(command, "send", 4)) {
         LOG_INFO("Sending message");
         result = command_send(server, json);

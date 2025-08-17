@@ -54,8 +54,8 @@ int json_to_message(const cJSON *json, Message *message) {
 }
 
 void message_to_json(cJSON *json, const Message* message) {
-    cJSON *from_r = cJSON_CreateString(message->from);
-    cJSON *to_r = cJSON_CreateString(message->to);
+    cJSON *from_r = cJSON_CreateString((const char*)&message->from);
+    cJSON *to_r = cJSON_CreateString((const char*)&message->to);
     cJSON *nonce_r = cJSON_CreateArray();
     for (size_t i = 0; i < 24; i++) {
         cJSON_AddItemToArray(nonce_r, cJSON_CreateNumber(message->nonce[i]));
@@ -76,5 +76,61 @@ void message_to_json(cJSON *json, const Message* message) {
 }
 
 int json_to_user(const cJSON *json, User* user) {
-    const cJSON *from_field = cJSON_GetObjectItemCaseSensitive(json, "user_name");
+    const cJSON *user_name = cJSON_GetObjectItemCaseSensitive(json, "user_name");
+    const cJSON *user_id = cJSON_GetObjectItemCaseSensitive(json, "user_id");
+    const cJSON *pubkey_sign = cJSON_GetObjectItemCaseSensitive(json, "pubkey_sign");
+    const cJSON *pubkey_encr = cJSON_GetObjectItemCaseSensitive(json, "pubkey_encr");
+    const cJSON *signature = cJSON_GetObjectItemCaseSensitive(json, "signature");
+
+    if (!cJSON_IsString(user_name)) {
+        LOG_ERROR("`user_name` field must be a string");
+        return -1;
+    }
+    if (!cJSON_IsString(user_id)) {
+        LOG_ERROR("`user_id` field must be a string");
+        return -1;
+    }
+    if (!cJSON_IsArray(pubkey_sign)) {
+        LOG_ERROR("`pubkey_sign` field must be an array");
+        return -1;
+    }
+    if (!cJSON_IsArray(pubkey_encr)) {
+        LOG_ERROR("`pubkey_encr` field must be an array");
+        return -1;
+    }
+    if (!cJSON_IsArray(signature)) {
+        LOG_ERROR("`signature` field must be an array");
+        return -1;
+    }
+    memcpy(&user->id, &user_id->valuestring, strlen(user_id->valuestring));
+    memcpy(&user->name, &user_name->valuestring, strlen(user_name->valuestring));
+    for (size_t i = 0; i < cJSON_GetArraySize(pubkey_sign); i++) {
+        user->pubkey_sign[i] = cJSON_GetArrayItem(pubkey_sign, i)->valueint;
+    }
+    for (size_t i = 0; i < cJSON_GetArraySize(pubkey_encr); i++) {
+        user->pubkey_encr[i] = cJSON_GetArrayItem(pubkey_encr, i)->valueint;
+    }
+    for (size_t i = 0; i < cJSON_GetArraySize(signature); i++) {
+        user->signature[i] = cJSON_GetArrayItem(signature, i)->valueint;
+    }
+    return 0;
+}
+
+void user_to_json(cJSON* json, const User* user) {
+    cJSON *user_name = cJSON_CreateString((const char*)&user->name);
+    cJSON *user_id = cJSON_CreateString((const char*)&user->id);
+    cJSON *pubkey_sign = cJSON_AddArrayToObject(json, "pubkey_sign");
+    cJSON *pubkey_encr = cJSON_AddArrayToObject(json, "pubkey_encr");
+    cJSON *signature = cJSON_AddArrayToObject(json, "signature");
+    for (size_t i = 0; i < sizeof(user->pubkey_sign); i++) {
+        cJSON_AddItemToArray(pubkey_sign, cJSON_CreateNumber(user->pubkey_sign[i]));
+    }
+    for (size_t i = 0; i < sizeof(user->pubkey_encr); i++) {
+        cJSON_AddItemToArray(pubkey_encr, cJSON_CreateNumber(user->pubkey_encr[i]));
+    }
+    for (size_t i = 0; i < sizeof(user->signature); i++) {
+        cJSON_AddItemToArray(signature, cJSON_CreateNumber(user->signature[i]));
+    }
+    cJSON_AddItemToObject(json, "user_name", user_name);
+    cJSON_AddItemToObject(json, "user_id", user_id);
 }
