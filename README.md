@@ -15,11 +15,11 @@
 * send message
   ```json
   {
-  "from": "",
-  "to": "",
-  "nonce": [],
-  "pubkey": [],
-  "message": {"content": "", "len": 0}
+    "from": "",
+    "to": "",
+    "nonce": [],
+    "pubkey": [],
+    "message": {"content": "", "len": 0}
   }
   ```
 
