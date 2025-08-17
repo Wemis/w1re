@@ -5,7 +5,7 @@
 * register user
   ```json
   {
-    "name": "",
+    "user_name": "",
     "user_id": "",
     "pubkey_sign": [],
     "pubkey_encr": [],
