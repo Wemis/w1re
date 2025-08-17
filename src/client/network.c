@@ -11,6 +11,7 @@
 #include "../shared/common.h"
 #include "../../libs/cjson/cJSON.h"
 #include "../shared/account.h"
+#include "../shared/serializer.h"
 
 int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON* json = cJSON_CreateObject();
@@ -39,7 +40,7 @@ int send_msg(const Message msg, struct bufferevent *bev) {
     cJSON_AddItemToObject(json, "pubkey", pubkey);
 
     cJSON_AddItemToObject(message, "content", content);
-    cJSON_AddNumberToObject(message, "len", msg.content.len);
+    cJSON_AddNumberToObject(message, "lenght", msg.content.len);
 
     cJSON_AddItemToObject(json, "message", message);
 
@@ -175,33 +176,10 @@ int send_msg_binary(const Message msg) {
 void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct bufferevent *bev) {
     User u = get_account(key, username, name);
     cJSON* json = cJSON_CreateObject();
-    cJSON* user = cJSON_CreateObject();
-    cJSON* pubkey_s = cJSON_CreateArray();
-    cJSON* pubkey_e = cJSON_CreateArray();
-    cJSON* signature = cJSON_CreateArray();
-
+    
     cJSON_AddStringToObject(json, "command", "login");
 
-    cJSON_AddStringToObject(user, "user_id", u.id);
-    cJSON_AddStringToObject(user, "user_name", u.name);
-
-    for (int i = 0; i < 32; i++) {
-        cJSON_AddItemToArray(pubkey_s, cJSON_CreateNumber(u.pubkey_sign[i]));
-    }
-
-    for (int i = 0; i < 32; i++) {
-        cJSON_AddItemToArray(pubkey_e, cJSON_CreateNumber(u.pubkey_encr[i]));
-    }
-
-    for (int i = 0; i < 64; i++) {
-        cJSON_AddItemToArray(signature, cJSON_CreateNumber(u.signature[i]));
-    }
-
-    cJSON_AddItemToObject(user, "pubkey_sign", pubkey_s);
-    cJSON_AddItemToObject(user, "pubkey_encr", pubkey_e);
-    cJSON_AddItemToObject(user, "signature", signature);
-
-    cJSON_AddItemToObject(json, "user", user);
+    user_to_json(json, &u);
 
     const char* json_string = cJSON_Print(json);
     cJSON_Delete(json);
