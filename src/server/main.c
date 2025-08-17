@@ -78,7 +78,8 @@ int server_init(Server *srv) {
     return 0;
 }
 
-static int handle_protocol(const Server *srv, const char *data, size_t len, int sock) {
+static int handle_protocol(const Server *srv, const char *data,
+                           const size_t len, const int sock) {
     cJSON *json = cJSON_ParseWithLength(data, len);
     if (!json) {
         LOG_ERROR("Invalid JSON from client %d", sock);
@@ -128,7 +129,7 @@ static void on_new_client(const Server *srv) {
     }
 }
 
-static void on_client_data(const Server *srv, int fd) {
+static void on_client_data(const Server *srv, const int fd) {
     char buffer[BUFFER_SIZE];
     const ssize_t count = read(fd, buffer, sizeof(buffer));
     if (count <= 0) {
