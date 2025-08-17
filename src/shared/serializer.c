@@ -48,30 +48,37 @@ int json_to_message(const cJSON *json, Message *message) {
     for (size_t i = 0; i < cJSON_GetArraySize(pubkey_field); i++) {
         message->sender_pubkey[i] = cJSON_GetArrayItem(pubkey_field, i)->valueint;
     }
-    message->content.ptr = strdup(message_content->valuestring);
+    int* content_ptr = malloc(sizeof(int)*cJSON_GetArraySize(message_content));
+    for (size_t i = 0; i < cJSON_GetArraySize(message_content); i++) {
+        content_ptr[i] = cJSON_GetArrayItem(message_content, i)->valueint;
+    }
+    message->content.ptr = content_ptr;
     message->content.len = message_length->valueint;
     return 0;
 }
 
 void message_to_json(cJSON *json, const Message* message) {
-    cJSON *from_r = cJSON_CreateString((const char*)&message->from);
-    cJSON *to_r = cJSON_CreateString((const char*)&message->to);
-    cJSON *nonce_r = cJSON_CreateArray();
+    cJSON *from = cJSON_CreateString((const char*)&message->from);
+    cJSON *to = cJSON_CreateString((const char*)&message->to);
+    cJSON *nonce = cJSON_CreateArray();
     for (size_t i = 0; i < 24; i++) {
-        cJSON_AddItemToArray(nonce_r, cJSON_CreateNumber(message->nonce[i]));
+        cJSON_AddItemToArray(nonce, cJSON_CreateNumber(message->nonce[i]));
     }
-    cJSON *pubkey_r = cJSON_CreateArray();
+    cJSON *pubkey = cJSON_CreateArray();
     for (size_t i = 0; i < 24; i++) {
-        cJSON_AddItemToArray(pubkey_r, cJSON_CreateNumber(message->sender_pubkey[i]));
+        cJSON_AddItemToArray(pubkey, cJSON_CreateNumber(message->sender_pubkey[i]));
     }
     cJSON *message_r = cJSON_CreateObject();
-    cJSON_AddStringToObject(message_r, "content", message->content.ptr);
+    cJSON *message_content = cJSON_AddArrayToObject(message_r, "content");
+    for (size_t i = 0; i < message->content.len; i++) {
+        cJSON_AddItemToArray(message_content, cJSON_CreateNumber(((double*)message->content.ptr)[i]));
+    }
     cJSON_AddNumberToObject(message_r, "length", message->content.len);
 
-    cJSON_AddItemReferenceToObject(json, "from", from_r);
-    cJSON_AddItemReferenceToObject(json, "to", to_r);
-    cJSON_AddItemReferenceToObject(json, "nonce", nonce_r);
-    cJSON_AddItemReferenceToObject(json, "pubkey", pubkey_r);
+    cJSON_AddItemReferenceToObject(json, "from", from);
+    cJSON_AddItemReferenceToObject(json, "to", to);
+    cJSON_AddItemReferenceToObject(json, "nonce", nonce);
+    cJSON_AddItemReferenceToObject(json, "pubkey", pubkey);
     cJSON_AddItemReferenceToObject(json, "message", message_r);
 }
 
@@ -102,8 +109,8 @@ int json_to_user(const cJSON *json, User* user) {
         LOG_ERROR("`signature` field must be an array");
         return -1;
     }
-    memcpy(&user->id, &user_id->valuestring, strlen(user_id->valuestring));
-    memcpy(&user->name, &user_name->valuestring, strlen(user_name->valuestring));
+    memcpy(user->id, user_id->valuestring, strlen(user_id->valuestring));
+    memcpy(user->name, user_name->valuestring, strlen(user_name->valuestring));
     for (size_t i = 0; i < cJSON_GetArraySize(pubkey_sign); i++) {
         user->pubkey_sign[i] = cJSON_GetArrayItem(pubkey_sign, i)->valueint;
     }

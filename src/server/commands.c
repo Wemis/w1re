@@ -17,7 +17,7 @@ int command_login(const Server *server, const cJSON *json, const int sock) {
 
     int ret;
     const khiter_t k = kh_put(STR_INT, server->clients, user.id, &ret);
-    if (ret != 0) {
+    if (ret < 0) {
         LOG_ERROR("Hashtable put error");
         return -1;
     }
