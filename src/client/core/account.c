@@ -1,4 +1,5 @@
 #include "../../shared/common.h"
+#include "../../shared/hex.h"
 #include "../../../libs/base58/base58.h"
 #include <sodium.h>
 #include <sodium/crypto_box.h>
@@ -168,4 +169,20 @@ int verify_account(const User user) {
     }
 
     return 1;
+}
+
+
+void print_account(const User u) {
+    printf("Name: %s  ", u.name);
+    print_hex(u.name, strlen(u.name));
+    printf("ID: %s  %d", u.id, strlen(u.id));
+    print_hex(u.id, strlen(u.id));
+    printf("Private Key: ");
+    print_hex(u.privkey, 32);
+    printf("Public Key Encr: ");
+    print_hex(u.pubkey_encr, 32);
+    printf("Public Key Sign: ");
+    print_hex(u.pubkey_sign, 32);
+    printf("Signature: ");
+    print_hex(u.signature, 64);
 }

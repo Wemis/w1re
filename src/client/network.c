@@ -11,6 +11,7 @@
 #include "../shared/common.h"
 #include "../../libs/cjson/cJSON.h"
 #include "../shared/account.h"
+#include "../shared/logger.h"
 #include "../shared/serializer.h"
 
 int send_msg(const Message msg, struct bufferevent *bev) {
@@ -111,6 +112,7 @@ int send_msg_binary(const Message msg) {
 
 void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct bufferevent *bev) {
     User u = get_account(key, username, name);
+    memset(u.privkey, 0, 32);
     cJSON* json = cJSON_CreateObject();
     
     cJSON_AddStringToObject(json, "command", "login");

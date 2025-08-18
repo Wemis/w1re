@@ -105,7 +105,7 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
     struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
     rctx->seconds++;
     log_init();
-    LOG_WARN("Reconnecting... %d sec", rctx->seconds);
+    LOG_WARN("Connecting... %d sec", rctx->seconds);
 
     if (!rctx->bev) {
         rctx->bev = bufferevent_socket_new(rctx->base, -1, BEV_OPT_CLOSE_ON_FREE);

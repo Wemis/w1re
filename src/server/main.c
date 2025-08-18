@@ -1,5 +1,6 @@
 #include "../shared/logger.h"
 #include "../shared/slice.h"
+#include "../../libs/khash.h"
 #include "commands.h"
 #include "server.h"
 
@@ -136,6 +137,17 @@ static void on_client_data(const Server *srv, const int fd) {
         LOG_INFO("Client %d disconnected", fd);
         epoll_ctl(srv->epoll_fd, EPOLL_CTL_DEL, fd, NULL);
         close(fd);
+        khint_t k = kh_get(INT_STR, srv->clients_by_sock, fd);
+        if (k != kh_end(srv->clients_by_sock)) {
+            char *id = kh_value(srv->clients_by_sock, k);
+            LOG_INFO("Client %s deleted from hashtable", id);
+            kh_del(INT_STR, srv->clients_by_sock, k);
+            k = kh_get(STR_INT, srv->clients_by_id, id);
+            free((void*)kh_key(srv->clients_by_id, k));
+            kh_del(STR_INT, srv->clients_by_id, k);
+            free(id);
+        }
+
         return;
     }
 
@@ -171,7 +183,8 @@ void server_run(const Server *srv) {
 
 void server_shutdown(Server *srv) {
     if (!srv) return;
-    kh_destroy_STR_INT(srv->clients);
+    kh_destroy_STR_INT(srv->clients_by_id);
+    kh_destroy_INT_STR(srv->clients_by_sock);
     close(srv->sock);
     close(srv->epoll_fd);
 }
@@ -181,7 +194,8 @@ int main(void) {
     init_signals();
 
     Server srv = {NULL};
-    srv.clients = kh_init_STR_INT();
+    srv.clients_by_id = kh_init_STR_INT();
+    srv.clients_by_sock = kh_init_INT_STR();
 
     if (server_init(&srv) != 0) return 1;
 
