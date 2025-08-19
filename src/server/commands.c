@@ -43,12 +43,21 @@ int command_send(const Server *server, const cJSON *json) {
         return -1;
     }
 
-    const khiter_t k = kh_get(STR_INT, server->clients_by_id, (const kh_cstr_t)message.from);
-    if (k == kh_end(server->clients_by_id)) {
+    const khiter_t k1 = kh_get(STR_INT, server->clients_by_id, (const kh_cstr_t)message.from);
+    if (k1 == kh_end(server->clients_by_id)) {
         LOG_INFO("User %s trying to send message and not authenticated", message.from);
-        return -1;
+        // Server can send negative response
+        return 1;
     }
-    const int sock = kh_value(server->clients_by_id, k);
+
+    const khiter_t k2 = kh_get(STR_INT, server->clients_by_id, (const kh_cstr_t)message.to);
+    if (k2 == kh_end(server->clients_by_id)) {
+        LOG_INFO("Receiver %s is not online, saving message to database", message.to);
+        // Database recording
+        return 1;
+    }
+
+    const int sock = kh_value(server->clients_by_id, k2);
 
     cJSON *payload = cJSON_CreateObject();
     message_to_json(payload, &message);
@@ -58,6 +67,7 @@ int command_send(const Server *server, const cJSON *json) {
     const int resp_len = strlen(resp);
 
     const int sent = send(sock, resp, resp_len, 0);
+    LOG_INFO("Message successfully delivered to %s", message.to);
     free(message.content.ptr);
     return sent;
 }
