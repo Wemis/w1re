@@ -2,6 +2,7 @@
 #include "../shared/common.h"
 #include "../shared/hex.h"
 #include "../shared/logger.h"
+#include "../../libs/linenoise/linenoise.h"
 #include "message.h"
 #include "network.h"
 #include <arpa/inet.h>
@@ -16,11 +17,23 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdarg.h>
+
+
+#define COLOR_GREEN "\033[32m"
+#define COLOR_RED   "\033[31m"
+#define COLOR_YELLOW "\033[33m"
+#define COLOR_RESET "\033[0m"
+
 
 static struct event_base *base;
 
+pthread_mutex_t io_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 struct ReconnectCtx {
     uint8_t is_connected;
+    uint8_t is_authenticated;
+    User *u;
     struct event_base *base;
     struct bufferevent *bev;
     struct event *timer;
@@ -31,6 +44,15 @@ struct ReconnectCtx {
 
 void try_connect(evutil_socket_t fd, short what, void *arg);
 void timer_cb(evutil_socket_t fd, short what, void *arg);
+
+void safe_print(const char *msg) {
+    pthread_mutex_lock(&io_mutex);
+
+    printf("\n%s\n", msg);
+    fflush(stdout);
+
+    pthread_mutex_unlock(&io_mutex);
+}
 
 void read_cb(struct bufferevent *bev, void *ctx) {
     char buf[4096];
@@ -53,19 +75,16 @@ void event_cb(struct bufferevent *bev, short events, void *ctx) {
             event_free(rctx->timer);
         }
         rctx->seconds = 0;
-        LOG_INFO("Connected to server");
+        //LOG_INFO("Connected to server");
         rctx->is_connected = 1;
 
-        const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
-
-        uint8_t key[32];
-        hex_to_bytes(privkey_hex, key, 32);
-
-        login(key, (uint8_t*)"danylo", (uint8_t*)"Danylo", bev);
+        login(*(rctx->u), bev);
+        rctx->is_authenticated = 1;
     }
     if (events & (BEV_EVENT_ERROR | BEV_EVENT_EOF)) {
         bufferevent_free(bev);
         rctx->is_connected = 0;
+        rctx->is_authenticated = 0;
         rctx->bev = NULL;
 
         if (!rctx->timer) {
@@ -105,7 +124,11 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
     struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
     rctx->seconds++;
     log_init();
-    LOG_WARN("Connecting... %d sec", rctx->seconds);
+    //LOG_WARN("Connecting... %d sec", rctx->seconds);
+    //safe_print("[system] Connecting...");
+    FILE *tty = fopen("/dev/tty", "w");
+    if (tty) { fputc('\n', tty); fclose(tty); }
+    
 
     if (!rctx->bev) {
         rctx->bev = bufferevent_socket_new(rctx->base, -1, BEV_OPT_CLOSE_ON_FREE);
@@ -141,9 +164,20 @@ void* event_thread(void *arg) {
 }
 
 
+void show_status(void *arg) {
+    struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
+    char *status = (rctx->is_connected) ? "Connected" : "Trying to connect...";
+    char *auth = (rctx->is_authenticated) ? "Authenticated" : "Failed to authenticate";
+    printf("\nStatus: %s\n%s as %s (%s)\n\n", status, auth, rctx->u->id, rctx->u->name);
+    fflush(stdout);
+}
+
+
 int main() {
     log_init();
+    User u = {0};
     struct ReconnectCtx rctx = {0};
+    rctx.u = &u;
     rctx.ip = SERVER_IP;
     rctx.port = PORT;
     rctx.seconds = 0;
@@ -152,9 +186,34 @@ int main() {
     pthread_create(&tid, NULL, event_thread, &rctx);
 
     // Main program
-    LOG_INFO("[MAIN] Working...");
+    //LOG_INFO("[MAIN] Working...");
+
+    char *line;
+    char prompt[64];
+    strcpy(prompt, "w1re > ");
+
+    const char *pkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
+    uint8_t key[32];
+    hex_to_bytes(pkey_hex, key, 32);
+
+    u = get_account(key, "danylo", "Danylo");
+
+
+    while ((line = linenoise(prompt)) != NULL) {
+        if (line[0] != '\0') {
+            linenoiseHistoryAdd(line);
+
+            if (strcmp(line, "/status") == 0) {
+                show_status(&rctx);
+            } else {
+                printf("You entered: %s\n", line);
+            }
+        }
+
+        linenoiseFree(line);
+    }
     
-    const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
+    /*const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
     const char* rc_pubkey_hex = "fa557f6a1f95eeeeb2d30474678154bc83b577ca04787a7025be007939d6944d";
     const char* sender_pubkey_hex = "2cf4572420b402ed2a7949c554b6e93c2122880f80c1d052be1611412e100d7a";
 
@@ -175,7 +234,7 @@ int main() {
     } else {
         LOG_WARN("Can't send message: not connected");
     }
-    free(msg.content.ptr);
+    free(msg.content.ptr);*/
 
     pthread_join(tid, NULL);
     return 0;

@@ -110,8 +110,7 @@ int send_msg_binary(const Message msg) {
 }
 
 
-void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct bufferevent *bev) {
-    User u = get_account(key, username, name);
+void login(User u, struct bufferevent *bev) {
     memset(u.privkey, 0, 32);
     cJSON* json = cJSON_CreateObject();
     

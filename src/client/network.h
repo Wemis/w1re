@@ -6,6 +6,6 @@
 
 int send_msg_binary(Message msg);
 int send_msg(Message msg, struct bufferevent *bev);
-void login(uint8_t key[32], uint8_t username[17], uint8_t name[64], struct bufferevent *bev);
+void login(User u, struct bufferevent *bev);
 
 #endif
