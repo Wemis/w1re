@@ -33,14 +33,14 @@ int json_to_message(const cJSON *json, Message *message) {
     const cJSON *message_content = cJSON_GetObjectItemCaseSensitive(message_field, "content");
     const cJSON *message_length = cJSON_GetObjectItemCaseSensitive(message_field, "length");
 
-    memcpy(message->from, from_field->valuestring, 32);
-    memcpy(message->to, to_field->valuestring, 32);
-    if (cJSON_GetArraySize(nonce_field) != 24) {
-        LOG_ERROR("nonce must be at exactly 24 bytes long");
+    memcpy(message->from, from_field->valuestring, strlen(message->from));
+    memcpy(message->to, to_field->valuestring, strlen(message->to));
+    if (cJSON_GetArraySize(nonce_field) != sizeof(message->nonce)) {
+        LOG_ERROR("nonce must be at exactly %d bytes long", sizeof(message->nonce));
         return -1;
     }
-    if (cJSON_GetArraySize(pubkey_field) != 32) {
-        LOG_ERROR("pubkey must be at exactly 32 bytes long");
+    if (cJSON_GetArraySize(pubkey_field) != sizeof(message->sender_pubkey)) {
+        LOG_ERROR("pubkey must be at exactly %d bytes long", sizeof(message->sender_pubkey));
         return -1;
     }
     for (size_t i = 0; i < cJSON_GetArraySize(nonce_field); i++) {
@@ -62,11 +62,11 @@ void message_to_json(cJSON *json, const Message* message) {
     cJSON *from = cJSON_CreateString((const char*)&message->from);
     cJSON *to = cJSON_CreateString((const char*)&message->to);
     cJSON *nonce = cJSON_CreateArray();
-    for (size_t i = 0; i < 24; i++) {
+    for (size_t i = 0; i < sizeof(message->nonce); i++) {
         cJSON_AddItemToArray(nonce, cJSON_CreateNumber(message->nonce[i]));
     }
     cJSON *pubkey = cJSON_CreateArray();
-    for (size_t i = 0; i < 32; i++) {
+    for (size_t i = 0; i < sizeof(message->sender_pubkey); i++) {
         cJSON_AddItemToArray(pubkey, cJSON_CreateNumber(message->sender_pubkey[i]));
     }
     cJSON *message_r = cJSON_CreateObject();

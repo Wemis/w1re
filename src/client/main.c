@@ -20,7 +20,7 @@
 static struct event_base *base;
 
 struct ReconnectCtx {
-    uint8_t is_connected;
+    bool is_connected;
     struct event_base *base;
     struct bufferevent *bev;
     struct event *timer;
@@ -32,10 +32,9 @@ struct ReconnectCtx {
 void try_connect(evutil_socket_t fd, short what, void *arg);
 void timer_cb(evutil_socket_t fd, short what, void *arg);
 
-void read_cb(struct bufferevent *bev, void *ctx) {
+void read_cb(struct bufferevent *bev, void *_) {
     char buf[4096];
     size_t n;
-    size_t rc;
     struct evbuffer *input = bufferevent_get_input(bev);
 
     while ((n = evbuffer_remove(input, buf, sizeof(buf))) > 0) {
@@ -44,8 +43,8 @@ void read_cb(struct bufferevent *bev, void *ctx) {
     }
 }
 
-void event_cb(struct bufferevent *bev, short events, void *ctx) {
-    struct ReconnectCtx *rctx = (struct ReconnectCtx *)ctx;
+void event_cb(struct bufferevent *bev, const short events, void *ctx) {
+    struct ReconnectCtx *rctx = ctx;
     log_init();
     
     if (events & BEV_EVENT_CONNECTED) {
@@ -54,24 +53,25 @@ void event_cb(struct bufferevent *bev, short events, void *ctx) {
         }
         rctx->seconds = 0;
         LOG_INFO("Connected to server");
-        rctx->is_connected = 1;
+        rctx->is_connected = true;
 
         const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
 
         uint8_t key[32];
         hex_to_bytes(privkey_hex, key, 32);
 
-        login(key, (uint8_t*)"danylo", (uint8_t*)"Danylo", bev);
+        login(key, "danylo", "Danylo", bev);
     }
     if (events & (BEV_EVENT_ERROR | BEV_EVENT_EOF)) {
         bufferevent_free(bev);
-        rctx->is_connected = 0;
+        rctx->is_connected = false;
         rctx->bev = NULL;
 
         if (!rctx->timer) {
-            rctx->timer = event_new(rctx->base, -1, EV_PERSIST, try_connect, rctx);
+            rctx->timer =
+                event_new(rctx->base, -1, EV_PERSIST, try_connect, rctx);
         }
-        struct timeval one_sec = {1, 0};
+        const struct timeval one_sec = {1, 0};
         event_add(rctx->timer, &one_sec);
     }
 }
@@ -99,8 +99,6 @@ void timer_cb(evutil_socket_t fd, short what, void *arg) {
     free(msg.content.ptr);
 }
 
-
-
 void try_connect(evutil_socket_t fd, short what, void *arg) {
     struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
     rctx->seconds++;
@@ -125,9 +123,8 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
     }
 }
 
-
 void* event_thread(void *arg) {
-    struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
+    struct ReconnectCtx *rctx = arg;
     base = event_base_new();
     if (!base) {
         LOG_ERROR(stderr, "[-] libevent initialize error");
@@ -139,7 +136,6 @@ void* event_thread(void *arg) {
 
     event_base_dispatch(rctx->base);
 }
-
 
 int main() {
     log_init();
@@ -180,9 +176,6 @@ int main() {
     pthread_join(tid, NULL);
     return 0;
 }
-
-
-
 
 void test_encr(void) {
     char* usrname = "danylo";

@@ -11,6 +11,7 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
 
     const build_component = b.option(RunMode, "component", "Choose to build server or client or both") orelse .ServerAndClient;
+    const enable_sanitizers = b.option(bool, "sanitizers", "pass true if you need to enable sanitizers for your code") orelse true;
 
     const server = b.addExecutable(.{
         .name = "w1re-server",
@@ -18,16 +19,32 @@ pub fn build(b: *std.Build) !void {
         .target = target,
     });
 
-    const shared_files: []const []const u8 = &.{"shared/slice.c", "shared/hex.c", "shared/serializer.c", "client/core/account.c"};
+    const shared_files: []const []const u8 = &.{
+        "shared/slice.c",
+        "shared/hex.c",
+        "shared/serializer.c",
+        "client/core/account.c",
+    };
+
+    const shared_flags: []const []const u8 = if (enable_sanitizers) &.{
+        "-fsanitize=address",
+        "-fsanitize=undefined",
+        "-fsanitize=leak",
+        "-fsanitize-address-use-after-return=always",
+        "-fno-omit-frame-pointer",
+        "-fno-optimize-sibling-calls",
+        "--std=c23",
+    } else &.{"--std=c23"};
 
     server.linkLibC();
-    server.addCSourceFiles(.{ .files = &.{"libs/cjson/cJSON.c", "libs/base58/base58.c"} });
+    server.addCSourceFiles(.{ .files = &.{ "libs/cjson/cJSON.c", "libs/base58/base58.c" } });
     server.addCSourceFiles(.{
         .root = b.path("src"),
-        .flags = &.{"--std=c23"},
+        .flags = shared_flags,
         .files = @as([]const []const u8, &.{ "server/main.c", "server/commands.c" }) ++ shared_files,
     });
     server.addIncludePath(b.path("libs"));
+    if (enable_sanitizers) server.linkSystemLibrary("asan");
     server.linkSystemLibrary("sodium");
 
     const client = b.addExecutable(.{
@@ -37,13 +54,14 @@ pub fn build(b: *std.Build) !void {
     });
 
     client.linkLibC();
-    client.addCSourceFiles(.{ .files = &.{"libs/base58/base58.c", "libs/cjson/cJSON.c"} });
+    client.addCSourceFiles(.{ .files = &.{ "libs/base58/base58.c", "libs/cjson/cJSON.c" } });
     client.addCSourceFiles(.{
         .root = b.path("src"),
-        .flags = &.{"--std=c23"},
-        .files = @as([]const []const u8, &.{"client/main.c", "client/core/message.c", "client/network.c"}) ++ shared_files,
+        .flags = shared_flags,
+        .files = @as([]const []const u8, &.{ "client/main.c", "client/core/message.c", "client/network.c" }) ++ shared_files,
     });
     client.addIncludePath(b.path("libs"));
+    if (enable_sanitizers) client.linkSystemLibrary("asan");
     client.linkSystemLibrary("sodium");
     client.linkSystemLibrary("event");
 

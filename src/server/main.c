@@ -143,11 +143,9 @@ static void on_client_data(const Server *srv, const int fd) {
             LOG_INFO("Client %s deleted from hashtable", id);
             kh_del(INT_STR, srv->clients_by_sock, k);
             k = kh_get(STR_INT, srv->clients_by_id, id);
-            free((void*)kh_key(srv->clients_by_id, k));
             kh_del(STR_INT, srv->clients_by_id, k);
             free(id);
         }
-
         return;
     }
 
