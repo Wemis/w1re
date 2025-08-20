@@ -18,7 +18,8 @@ int command_login(const Server *server, const cJSON *json, const int sock) {
     }
 
     int ret, ret2;
-    const khint_t k1 = kh_put(STR_INT, server->clients_by_id, strdup(user.id), &ret);
+    char* user_id = strdup(user.id);
+    const khint_t k1 = kh_put(STR_INT, server->clients_by_id, user_id, &ret);
     const khint_t k2 = kh_put(INT_STR, server->clients_by_sock, sock, &ret2);
     if (ret < 0 || ret2 < 0) {
         LOG_ERROR("Hashtable put error");
@@ -31,7 +32,7 @@ int command_login(const Server *server, const cJSON *json, const int sock) {
     }
 
     kh_value(server->clients_by_id, k1) = sock;
-    kh_value(server->clients_by_sock, k2) = strdup(user.id);
+    kh_value(server->clients_by_sock, k2) = user_id;
     LOG_INFO("User %s authenticated, verified: %d", user.id, verify_account(user));
     return 0;
 }
@@ -43,14 +44,14 @@ int command_send(const Server *server, const cJSON *json) {
         return -1;
     }
 
-    const khiter_t k1 = kh_get(STR_INT, server->clients_by_id, (const kh_cstr_t)message.from);
+    const khiter_t k1 = kh_get(STR_INT, server->clients_by_id, message.from);
     if (k1 == kh_end(server->clients_by_id)) {
         LOG_INFO("User %s trying to send message and not authenticated", message.from);
         // Server can send negative response
         return 1;
     }
 
-    const khiter_t k2 = kh_get(STR_INT, server->clients_by_id, (const kh_cstr_t)message.to);
+    const khiter_t k2 = kh_get(STR_INT, server->clients_by_id, message.to);
     if (k2 == kh_end(server->clients_by_id)) {
         LOG_INFO("Receiver %s is not online, saving message to database", message.to);
         // Database recording
