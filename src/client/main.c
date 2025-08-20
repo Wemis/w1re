@@ -10,11 +10,8 @@
 #include <event2/event.h>
 #include <event2/util.h>
 #include <pthread.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 static struct event_base *base;
@@ -30,7 +27,7 @@ struct ReconnectCtx {
 };
 
 void try_connect(evutil_socket_t fd, short what, void *arg);
-void timer_cb(evutil_socket_t fd, short what, void *arg);
+void timer_cb(evutil_socket_t fd, short what, const void *arg);
 
 void read_cb(struct bufferevent *bev, void *_) {
     char buf[4096];
@@ -50,6 +47,7 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
     if (events & BEV_EVENT_CONNECTED) {
         if (rctx->timer) {
             event_free(rctx->timer);
+            rctx->timer = NULL;
         }
         rctx->seconds = 0;
         LOG_INFO("Connected to server");
@@ -60,7 +58,7 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
         uint8_t key[32];
         hex_to_bytes(privkey_hex, key, 32);
 
-        login(key, "danylo", "Danylo", bev);
+        login(key, (uint8_t*)"danylo", (uint8_t*)"Danylo", bev);
     }
     if (events & (BEV_EVENT_ERROR | BEV_EVENT_EOF)) {
         bufferevent_free(bev);
@@ -76,8 +74,8 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
     }
 }
 
-void timer_cb(evutil_socket_t fd, short what, void *arg) {
-    struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
+void timer_cb(evutil_socket_t fd, short what, const void *arg) {
+    const struct ReconnectCtx *rctx = arg;
     LOG_INFO("[MAIN] Working...");
     
     const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
@@ -93,14 +91,14 @@ void timer_cb(evutil_socket_t fd, short what, void *arg) {
 
     const User usr = get_account(key, "danylo", "Danylo");
 
-    Message msg = build_msg("hello, it's secret", usr.id, (uint8_t*)"alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
+    const Message msg = build_msg("hello, it's secret", usr.id, (uint8_t*)"alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
     
     send_msg(msg, rctx->bev);
     free(msg.content.ptr);
 }
 
 void try_connect(evutil_socket_t fd, short what, void *arg) {
-    struct ReconnectCtx *rctx = (struct ReconnectCtx *)arg;
+    struct ReconnectCtx *rctx = arg;
     rctx->seconds++;
     log_init();
     LOG_WARN("Connecting... %d sec", rctx->seconds);
@@ -123,18 +121,19 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
     }
 }
 
-void* event_thread(void *arg) {
+void *event_thread(void *arg) {
     struct ReconnectCtx *rctx = arg;
     base = event_base_new();
     if (!base) {
         LOG_ERROR(stderr, "[-] libevent initialize error");
-        return 0;
+        return NULL;
     }
     rctx->base = base;
     
     try_connect(-1, 0, rctx);
 
     event_base_dispatch(rctx->base);
+    return NULL;
 }
 
 int main() {
@@ -164,6 +163,7 @@ int main() {
     const User usr = get_account(key, "danylo", "Danylo");
 
     const Message msg = build_msg("hello, it's secret", usr.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
+
 
     sleep(3);
     if (rctx.is_connected) {
