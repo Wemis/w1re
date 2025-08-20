@@ -62,8 +62,10 @@ pub fn build(b: *std.Build) !void {
     });
     client.addIncludePath(b.path("libs"));
     if (enable_sanitizers) client.linkSystemLibrary("asan");
+    client.addLibraryPath(b.path("libs/prebuilt/"));
     client.linkSystemLibrary("sodium");
     client.linkSystemLibrary("event");
+    client.linkSystemLibrary("sdl3");
 
     switch (build_component) {
         .Client => b.installArtifact(client),
