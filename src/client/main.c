@@ -2,7 +2,7 @@
 #include "../shared/common.h"
 #include "../shared/hex.h"
 #include "../shared/logger.h"
-#include "../../libs/linenoise/linenoise.h"
+#include "core/ui/clay_renderer_SDL3.c"
 #include "message.h"
 #include "network.h"
 #include <arpa/inet.h>
@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <stdarg.h>
 
@@ -24,8 +25,6 @@
 
 
 static struct event_base *base;
-
-pthread_mutex_t io_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct ReconnectCtx {
     bool is_connected;
@@ -42,7 +41,7 @@ struct ReconnectCtx {
 void try_connect(evutil_socket_t fd, short what, void *arg);
 void timer_cb(evutil_socket_t fd, short what, const void *arg);
 
-void read_cb(struct bufferevent *bev, void *_) {
+void read_cb(struct bufferevent *bev, void *ctx) {
     char buf[4096];
     size_t n;
     struct evbuffer *input = bufferevent_get_input(bev);
@@ -55,7 +54,6 @@ void read_cb(struct bufferevent *bev, void *_) {
 
 void event_cb(struct bufferevent *bev, const short events, void *ctx) {
     struct ReconnectCtx *rctx = ctx;
-    log_init();
     
     if (events & BEV_EVENT_CONNECTED) {
         if (rctx->timer) {
@@ -63,7 +61,8 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
             rctx->timer = NULL;
         }
         rctx->seconds = 0;
-        LOG_INFO("Connected to server");
+        printf(COLOR_GREEN "[INFO] Connected to server\n" COLOR_RESET);
+        fflush(stdout);
         rctx->is_connected = true;
 
         login(*(rctx->u), bev);
@@ -72,7 +71,7 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
     if (events & (BEV_EVENT_ERROR | BEV_EVENT_EOF)) {
         bufferevent_free(bev);
         rctx->is_connected = false;
-        rctx->is_authenticated = 0;
+        rctx->is_authenticated = false;
         rctx->bev = NULL;
 
         if (!rctx->timer) {
@@ -110,12 +109,10 @@ void timer_cb(evutil_socket_t fd, short what, const void *arg) {
 void try_connect(evutil_socket_t fd, short what, void *arg) {
     struct ReconnectCtx *rctx = arg;
     rctx->seconds++;
-    log_init();
+    //log_init();
     //LOG_WARN("Connecting... %d sec", rctx->seconds);
-    //safe_print("[system] Connecting...");
-    FILE *tty = fopen("/dev/tty", "w");
-    if (tty) { fputc('\n', tty); fclose(tty); }
-    
+    printf(COLOR_YELLOW "[WARN] Connecting... %d\n" COLOR_RESET, rctx->seconds);
+    fflush(stdout);
 
     if (!rctx->bev) {
         rctx->bev = bufferevent_socket_new(rctx->base, -1, BEV_OPT_CLOSE_ON_FREE);
@@ -139,7 +136,7 @@ void *event_thread(void *arg) {
     struct ReconnectCtx *rctx = arg;
     base = event_base_new();
     if (!base) {
-        LOG_ERROR(stderr, "[-] libevent initialize error");
+        printf("[-] libevent initialize error");
         return NULL;
     }
     rctx->base = base;
@@ -161,7 +158,6 @@ void show_status(void *arg) {
 
 
 int main() {
-    log_init();
     User u = {0};
     struct ReconnectCtx rctx = {0};
     rctx.u = &u;
@@ -172,33 +168,21 @@ int main() {
     pthread_t tid;
     pthread_create(&tid, NULL, event_thread, &rctx);
 
+
+
     // Main program
     //LOG_INFO("[MAIN] Working...");
 
-    char *line;
-    char prompt[64];
-    strcpy(prompt, "w1re > ");
+    //char *line;
+    //char prompt[64];
+    //strcpy(prompt, "w1re > ");
 
-    const char *pkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
-    uint8_t key[32];
-    hex_to_bytes(pkey_hex, key, 32);
+    //onst char *pkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
+    //uint8_t key[32];
+    //hex_to_bytes(pkey_hex, key, 32);
 
-    u = get_account(key, "danylo", "Danylo");
+    //u = get_account(key, "danylo", "Danylo");
 
-
-    while ((line = linenoise(prompt)) != NULL) {
-        if (line[0] != '\0') {
-            linenoiseHistoryAdd(line);
-
-            if (strcmp(line, "/status") == 0) {
-                show_status(&rctx);
-            } else {
-                printf("You entered: %s\n", line);
-            }
-        }
-
-        linenoiseFree(line);
-    }
     
     /*const char* privkey_hex = "dc8d6a2f464250e617577dcab5a99cf08613b429b1cc815ad412c47ce0ea96f1";
     const char* rc_pubkey_hex = "fa557f6a1f95eeeeb2d30474678154bc83b577ca04787a7025be007939d6944d";
@@ -211,9 +195,9 @@ int main() {
     hex_to_bytes(rc_pubkey_hex, rc_pubkey, 32);
     hex_to_bytes(sender_pubkey_hex, sender_pubkey, 32);
 
-    const User usr = get_account(key, "danylo", "Danylo");
+    u = get_account(key, "danylo", "Danylo");
 
-    const Message msg = build_msg("hello, it's secret", usr.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
+    const Message msg = build_msg("hello, it's secret", u.id, "alice#3bTSGAkaDNpeS4", rc_pubkey, sender_pubkey, key);
 
 
     sleep(3);
