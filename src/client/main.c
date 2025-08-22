@@ -94,9 +94,9 @@ Clay_RenderCommandArray ClayImageSample_CreateLayout() {
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     User *u = malloc(sizeof(User));
-    memset(u, 0, sizeof(User));
+    *u = (User){0};
     ReconnectCtx *rctx = malloc(sizeof(ReconnectCtx));
-    memset(rctx, 0, sizeof(ReconnectCtx));
+    *rctx = (ReconnectCtx){0};
     rctx->u = u;
     rctx->ip = strdup(SERVER_IP);
     rctx->port = PORT;
@@ -178,7 +178,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
-            ret_val = SDL_APP_SUCCESS;
+            exit(0);
             break;
         case SDL_EVENT_KEY_UP:
             if (event->key.scancode == SDL_SCANCODE_SPACE) {

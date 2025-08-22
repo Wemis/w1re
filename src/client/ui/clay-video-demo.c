@@ -4,7 +4,7 @@
 const int FONT_ID_BODY_16 = 0;
 Clay_Color COLOR_WHITE = { 255, 255, 255, 255};
 
-void RenderHeaderButton(Clay_String text) {
+void RenderHeaderButton(const Clay_String text) {
     CLAY({
         .layout = { .padding = { 16, 16, 8, 8 }},
         .backgroundColor = { 140, 140, 140, 255 },
@@ -18,7 +18,7 @@ void RenderHeaderButton(Clay_String text) {
     }
 }
 
-void RenderDropdownMenuItem(Clay_String text) {
+void RenderDropdownMenuItem(const Clay_String text) {
     CLAY({.layout = { .padding = CLAY_PADDING_ALL(16)}}) {
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = FONT_ID_BODY_16,
@@ -81,9 +81,10 @@ ClayVideoDemo_Data ClayVideoDemo_Initialize() {
     documents.documents[1] = (Document){ .title = CLAY_STRING("Lorem Ipsum"), .contents = CLAY_STRING("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.") };
     documents.documents[2] = (Document){ .title = CLAY_STRING("Vacuum Instructions"), .contents = CLAY_STRING("Chapter 3: Getting Started - Unpacking and Setup\n""\n""Congratulations on your new SuperClean Pro 5000 vacuum cleaner! In this section, we will guide you through the simple steps to get your vacuum up and running. Before you begin, please ensure that you have all the components listed in the \"Package Contents\" section on page 2.\n""\n""1. Unboxing Your Vacuum\n""Carefully remove the vacuum cleaner from the box. Avoid using sharp objects that could damage the product. Once removed, place the unit on a flat, stable surface to proceed with the setup. Inside the box, you should find:\n""\n""    The main vacuum unit\n""    A telescoping extension wand\n""    A set of specialized cleaning tools (crevice tool, upholstery brush, etc.)\n""    A reusable dust bag (if applicable)\n""    A power cord with a 3-prong plug\n""    A set of quick-start instructions\n""\n""2. Assembling Your Vacuum\n""Begin by attaching the extension wand to the main body of the vacuum cleaner. Line up the connectors and twist the wand into place until you hear a click. Next, select the desired cleaning tool and firmly attach it to the wand's end, ensuring it is securely locked in.\n""\n""For models that require a dust bag, slide the bag into the compartment at the back of the vacuum, making sure it is properly aligned with the internal mechanism. If your vacuum uses a bagless system, ensure the dust container is correctly seated and locked in place before use.\n""\n""3. Powering On\n""To start the vacuum, plug the power cord into a grounded electrical outlet. Once plugged in, locate the power switch, usually positioned on the side of the handle or body of the unit, depending on your model. Press the switch to the \"On\" position, and you should hear the motor begin to hum. If the vacuum does not power on, check that the power cord is securely plugged in, and ensure there are no blockages in the power switch.\n""\n""Note: Before first use, ensure that the vacuum filter (if your model has one) is properly installed. If unsure, refer to \"Section 5: Maintenance\" for filter installation instructions.") };
     documents.documents[3] = (Document){ .title = CLAY_STRING("Article 4"), .contents = CLAY_STRING("Article 4") };
-    documents.documents[4] = (Document){ .title = CLAY_STRING("Article 5"), .contents = CLAY_STRING("Article 5") };
+    documents.documents[4] = (Document){.title = CLAY_STRING("Article 5"),
+                                        .contents = CLAY_STRING("Article 5")};
 
-    ClayVideoDemo_Data data = {
+    const ClayVideoDemo_Data data = {
         .frameArena = { .memory = (intptr_t)malloc(1024) }
     };
     return data;
@@ -99,8 +100,6 @@ Clay_RenderCommandArray ClayVideoDemo_CreateLayout(ClayVideoDemo_Data *data) {
         .height = CLAY_SIZING_GROW(0)
     };
 
-    Clay_Color contentBackgroundColor = { 90, 90, 90, 255 };
-
     // Build UI here
     CLAY({ .id = CLAY_ID("OuterContainer"),
         .backgroundColor = {43, 41, 51, 255 },
@@ -111,6 +110,7 @@ Clay_RenderCommandArray ClayVideoDemo_CreateLayout(ClayVideoDemo_Data *data) {
             .childGap = 16
         }
     }) {
+        const Clay_Color contentBackgroundColor = {90, 90, 90, 255};
         // Child elements go inside braces
         CLAY({ .id = CLAY_ID("HeaderBar"),
             .layout = {
