@@ -4,6 +4,8 @@
 #include "message.h"
 #include "network.h"
 #include <arpa/inet.h>
+#include <stdint.h>
+#include <string.h>
 
 #define SDL_MAIN_USE_CALLBACKS
 #include "ui/clay_renderer_SDL3.c"
@@ -17,8 +19,8 @@
 #include <pthread.h>
 
 
-#define FONT_PATH (char*)"../../src/client/resources/SF-Pro.ttf"
-#define IMAGE_PATH (char*)"../../src/client/resources/sample.png"
+#define FONT_PATH (char*)"src/client/resources/SF-Pro.ttf"
+#define IMAGE_PATH (char*)"src/client/resources/sample.png"
 
 
 static const Uint32 FONT_ID = 0;
@@ -91,15 +93,17 @@ Clay_RenderCommandArray ClayImageSample_CreateLayout() {
 
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    User u = {0};
-    ReconnectCtx rctx = {0};
-    rctx.u = &u;
-    rctx.ip = SERVER_IP;
-    rctx.port = PORT;
-    rctx.seconds = 0;
+    User *u = malloc(sizeof(User));
+    memset(u, 0, sizeof(User));
+    ReconnectCtx *rctx = malloc(sizeof(ReconnectCtx));
+    memset(rctx, 0, sizeof(ReconnectCtx));
+    rctx->u = u;
+    rctx->ip = strdup(SERVER_IP);
+    rctx->port = PORT;
+    rctx->seconds = 0;
 
     pthread_t tid;
-    pthread_create(&tid, NULL, event_thread, &rctx);
+    pthread_create(&tid, NULL, event_thread, rctx);
 
     (void) argc;
     (void) argv;
@@ -114,8 +118,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     }
     *appstate = state;
 
+    state->rctx = rctx;
     state->network_tid = tid;
-    state->u = &u;
+    state->u = u;
 
     if (!SDL_CreateWindowAndRenderer("Messenger", 640, 480, 0, &state->window, &state->rendererData.renderer)) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create window and renderer: %s", SDL_GetError());
@@ -222,6 +227,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 
 
+void reconnect_ctx_free(ReconnectCtx *ctx) {
+    if (!ctx) return;
+
+    if (ctx->timer) event_free(ctx->timer);
+    if (ctx->bev) bufferevent_free(ctx->bev);
+    if (ctx->u) free(ctx->u);
+    if (ctx->ip) free((char*)ctx->ip);
+
+    free(ctx);
+}
+
+
+
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     (void) result;
 
@@ -231,6 +249,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
 
     AppState *state = appstate;
     pthread_join(state->network_tid, NULL);
+    reconnect_ctx_free(state->rctx);
+    printf("\nQuit\n");
 
     if (sample_image) {
         SDL_DestroyTexture(sample_image);
