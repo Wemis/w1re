@@ -4,6 +4,9 @@
 #include <sodium/crypto_box.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <event2/event.h>
+#include <event2/bufferevent.h>
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 5330
@@ -24,5 +27,18 @@ typedef struct {
     uint8_t sender_pubkey[crypto_box_PUBLICKEYBYTES];
     Slice content;
 } Message;
+
+
+typedef struct {
+    bool is_connected;
+    bool is_authenticated;
+    User *u;
+    struct event_base *base;
+    struct bufferevent *bev;
+    struct event *timer;
+    int seconds;
+    const char *ip;
+    int port;
+} ReconnectCtx;
 
 #endif

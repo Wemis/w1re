@@ -67,6 +67,8 @@ pub fn build(b: *std.Build) !void {
     client.addLibraryPath(b.path("libs/SDL3_image/lib"));
     client.linkSystemLibrary("sodium");
     client.linkSystemLibrary("event");
+    client.linkSystemLibrary("freetype");
+    client.linkSystemLibrary("harfbuzz");
     client.linkSystemLibrary("SDL3");
     client.linkSystemLibrary("SDL3_ttf");
     client.linkSystemLibrary("SDL3_image");
