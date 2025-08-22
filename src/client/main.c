@@ -3,6 +3,7 @@
 #include "../shared/hex.h"
 #include "message.h"
 #include "network.h"
+#include <SDL3/SDL_init.h>
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <string.h>
@@ -178,7 +179,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
-            exit(0);
+            ret_val = SDL_APP_SUCCESS;
             break;
         case SDL_EVENT_KEY_UP:
             if (event->key.scancode == SDL_SCANCODE_SPACE) {
@@ -248,9 +249,8 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     }
 
     AppState *state = appstate;
-    pthread_join(state->network_tid, NULL);
     reconnect_ctx_free(state->rctx);
-    printf("\nQuit\n");
+    printf("\nGoodbye\n");
 
     if (sample_image) {
         SDL_DestroyTexture(sample_image);
