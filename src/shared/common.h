@@ -1,15 +1,23 @@
 #ifndef COMMON_H
 #define COMMON_H
+#include "gtk/gtk.h"
+#include "gtk/gtkshortcut.h"
 #include "slice.h"
 #include <sodium/crypto_box.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <gtk/gtk.h>
 #include <event2/event.h>
 #include <event2/bufferevent.h>
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 5330
+
+#define COLOR_GREEN "\033[32m"
+#define COLOR_RED   "\033[31m"
+#define COLOR_YELLOW "\033[33m"
+#define COLOR_RESET "\033[0m"
 
 typedef struct {
     uint8_t name[64];
@@ -28,17 +36,27 @@ typedef struct {
     Slice content;
 } Message;
 
+typedef struct {
+    GtkWidget *header;
+    GtkLabel *status_text;
+} AppHeader;
 
 typedef struct {
     bool is_connected;
     bool is_authenticated;
-    User *u;
     struct event_base *base;
     struct bufferevent *bev;
     struct event *timer;
     int seconds;
     const char *ip;
     int port;
-} ReconnectCtx;
+    GtkWidget *window;
+    AppHeader *h;
+    GtkWidget *chat_list_container;
+    GtkWidget *chat_view_container;
+    GtkWidget *chat_list;
+    GtkWidget *chat_view;
+    User *u;
+} AppData;
 
 #endif

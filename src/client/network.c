@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <gtk/gtk.h>
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -19,6 +20,7 @@
 #include "../../libs/cjson/cJSON.h"
 #include "../shared/logger.h"
 #include "../shared/serializer.h"
+#include "ui/callbacks.h"
 
 
 int send_msg(const Message msg, struct bufferevent *bev) {
@@ -144,10 +146,7 @@ void login(User u, struct bufferevent *bev) {
 
 
 
-#define COLOR_GREEN "\033[32m"
-#define COLOR_RED   "\033[31m"
-#define COLOR_YELLOW "\033[33m"
-#define COLOR_RESET "\033[0m"
+
 
 
 
@@ -155,7 +154,7 @@ void login(User u, struct bufferevent *bev) {
 void try_connect(evutil_socket_t fd, short what, void *arg);
 
 void read_cb(struct bufferevent *bev, void *ctx) {
-    ReconnectCtx *rctx = ctx;
+    AppData *rctx = ctx;
     char buf[4096];
     size_t n;
     struct evbuffer *input = bufferevent_get_input(rctx->bev);
@@ -167,7 +166,7 @@ void read_cb(struct bufferevent *bev, void *ctx) {
 }
 
 void event_cb(struct bufferevent *bev, const short events, void *ctx) {
-    ReconnectCtx *rctx = ctx;
+    AppData *rctx = ctx;
     
     if (events & BEV_EVENT_CONNECTED) {
         if (rctx->timer) {
@@ -178,6 +177,8 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
         printf(COLOR_GREEN "[INFO] Connected to server\n" COLOR_RESET);
         fflush(stdout);
         rctx->is_connected = true;
+
+        ui_change_status(rctx, STATUS_CONNECTED);
 
         login(*(rctx->u), bev);
         rctx->is_authenticated = 1;
@@ -199,12 +200,12 @@ void event_cb(struct bufferevent *bev, const short events, void *ctx) {
 
 
 void try_connect(evutil_socket_t fd, short what, void *arg) {
-    ReconnectCtx *rctx = arg;
+    AppData *rctx = arg;
     rctx->seconds++;
-    //log_init();
-    //LOG_WARN("Connecting... %d sec", rctx->seconds);
     printf(COLOR_YELLOW "[WARN] Connecting... %d\n" COLOR_RESET, rctx->seconds);
     fflush(stdout);
+
+    ui_change_status(rctx, STATUS_DISCONNECTED);
 
     if (!rctx->bev) {
         rctx->bev = bufferevent_socket_new(rctx->base, -1, BEV_OPT_CLOSE_ON_FREE);
@@ -225,7 +226,7 @@ void try_connect(evutil_socket_t fd, short what, void *arg) {
 }
 
 void *event_thread(void *arg) {
-    ReconnectCtx *rctx = arg;
+    AppData *rctx = arg;
     rctx->base = event_base_new();
     if (!rctx->base) {
         printf("[-] libevent initialize error");
